@@ -1,5 +1,5 @@
 ---
-title: Diátaxis
+title: 《Diátaxis》
 weight: 1
 sidebar:
   open: true
