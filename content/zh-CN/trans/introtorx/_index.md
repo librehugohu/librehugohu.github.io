@@ -5,6 +5,10 @@ sidebar:
   open: true
 ---
 
+{{< callout type="info" >}}
+  本书原作者为 [Ian Griffiths](https://endjin.com/who-we-are/our-people/ian-griffiths/) 和 [Lee Campbell](https://leecampbell.com/) 。原书发布在 [IntroToRX.NET](https://www.introtorx.com/) 网站上，由 Hugo HU 翻译，最后校对日期为 2023.12.11 ，如果发现译文有错误或译文落后于源文本请通过本仓库 [issues](https://github.com/librehugohu/librehugohu.github.io/issues) 反馈或通过 [E-Mail](mailto:librehugohu@outlook.com) 联系我改正。
+{{< /callout >}}
+
 Reactive programming is not a new concept. Any kind of user interface development necessarily involves code that responds to events. Languages like Smalltalk, Delphi and the .NET languages have popularized reactive or event-driven programming paradigms. Architectural patterns such as CEP (Complex Event Processing), and CQRS (Command Query Responsibility Segregation) have events as a fundamental part of their makeup. Reactive programming is a useful concept in any program that has to deal with things happening.
 
 Reactive programming is a useful concept in any program that has to deal with things happening.
