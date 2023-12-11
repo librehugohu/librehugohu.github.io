@@ -1,5 +1,5 @@
 ---
-title: 《ReactiveUI》
+title: ReactiveUI Documentation
 weight: 3
 sidebar:
   open: true
