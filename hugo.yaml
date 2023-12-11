@@ -93,4 +93,4 @@ params:
 
   editURL:
     enable: true
-    base: "https://github.com/librehugohu/librehugohu.github.io/edit/main"
+    base: "https://github.com/librehugohu/librehugohu.github.io/edit/main/content"
