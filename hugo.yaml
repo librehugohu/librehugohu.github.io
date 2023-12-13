@@ -91,6 +91,16 @@ params:
     list:
       displayTags: true
 
+  comments:
+    enable: true
+    type: giscus
+
+    giscus:
+      repo: librehugohu/librehugohu.github.io
+      repoId: R_kgDOK4OBVg
+      category: Announcements
+      categoryId: DIC_kwDOK4OBVs4CbpcK
+
   editURL:
     enable: true
     base: "https://github.com/librehugohu/librehugohu.github.io/edit/main/content"
