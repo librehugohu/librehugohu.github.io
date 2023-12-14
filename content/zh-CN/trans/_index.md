@@ -11,9 +11,13 @@ Hugo.Trans 包括一些由 Hugo HU 独立或合作翻译的技术文本。
 Diátaxis 适合想要构造项目文档网站却不知道如何组织文档结构的文档编写者。
 
 {{< cards >}}
-  {{< card link="diataxis" title="Diátaxis"
+  {{< card link="diataxis"
+  icon="book-open"
   image="/image/diataxis.jpg"
-  icon="book-open" subtitle="技术文档创作的系统方法" >}}
+  method="Resize"
+  options="600x q80 webp"
+  title="Diátaxis"
+  subtitle="技术文档创作的系统方法" >}}
 {{< /cards >}}
 
 ## Rx
@@ -21,12 +25,19 @@ Diátaxis 适合想要构造项目文档网站却不知道如何组织文档结�
 关于 Rx.NET 和 ReactiveUI 的区别详见[这个回答](https://stackoverflow.com/questions/34727584/reactiveui-rxui-vs-reactive-extensions)。总而言之，Rx.NET 是一个响应式编程模型的 .NET 实现，它与 UI 无关，可以在任何类型的 .NET 程序中使用； ReactiveUI 是一个使用响应式编程模型的 MVVM 框架，主要面向使用 .NET 系 GUI 技术（WPF, Avalonia, MAUI, WinUI, Uno, Xamarin, Blazor 等等）开发的应用。
 
 {{< cards >}}
-  {{< card link="introtorx" title="Introduction to Rx.NET"
+  {{< card link="introtorx"
+  icon="book-open"
   image="/image/introtorx.jpg"
-  icon="book-open" subtitle="Introduction to Rx.NET 中文版" >}}
-  {{< card link="reactiveui" 
-  image="/image/reactiveui.jpg" 
-  title="ReactiveUI Documentation" icon="book-open" 
+  method="Resize"
+  options="600x q80 webp"
+  title="Introduction to Rx.NET"
+   subtitle="Introduction to Rx.NET 中文版" >}}
+  {{< card link="reactiveui"
+  icon="book-open"
+  image="/image/reactiveui.jpg"
+  method="Resize"
+  options="600x q80 webp"
+  title="ReactiveUI Documentation"
   subtitle="ReactiveUI 文档中文版" >}}
 {{< /cards >}}
 
