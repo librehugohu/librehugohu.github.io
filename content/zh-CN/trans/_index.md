@@ -14,8 +14,6 @@ Diátaxis 适合想要构造项目文档网站却不知道如何组织文档结�
   {{< card link="diataxis"
   icon="book-open"
   image="/image/diataxis.jpg"
-  method="Resize"
-  options="600x q80 webp"
   title="Diátaxis"
   subtitle="技术文档创作的系统方法" >}}
 {{< /cards >}}
@@ -28,15 +26,11 @@ Diátaxis 适合想要构造项目文档网站却不知道如何组织文档结�
   {{< card link="introtorx"
   icon="book-open"
   image="/image/introtorx.jpg"
-  method="Resize"
-  options="600x q80 webp"
   title="Introduction to Rx.NET"
-   subtitle="Introduction to Rx.NET 中文版" >}}
+  subtitle="Introduction to Rx.NET 中文版" >}}
   {{< card link="reactiveui"
   icon="book-open"
   image="/image/reactiveui.jpg"
-  method="Resize"
-  options="600x q80 webp"
   title="ReactiveUI Documentation"
   subtitle="ReactiveUI 文档中文版" >}}
 {{< /cards >}}
