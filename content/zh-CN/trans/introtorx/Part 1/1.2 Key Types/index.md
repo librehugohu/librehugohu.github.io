@@ -68,75 +68,70 @@ public static IDisposable Subscribe<T>(this IObservable<T> source, Action<T> onN
 
 这是一个辅助方法，它将委托包装在一个 `IObserver<T>` 的实现中，然后将其传递给 `IObservable<T>.Subscribe`。于是我们可以只编写一个简单的方法（而不是 `IObserver<T>` 的完整实现），并且可观察源每次想要提供值时都会调用我们提供的回调。使用这种辅助方法比我们自己实现 Rx 的接口更常见。
 
-## 热源和冷源
+## 热源（Hot Source）和冷源（Cold Source）
 
-Since an IObservable<T> cannot supply us with values until we subscribe, the time at which we subscribe can be important. Imagine an IObservable<Trade> describing trades occurring in some market. If the information it supplies is live, it's not going to tell you about any trades that occurred before you subscribed. In Rx, sources of this kind are described as being hot.
-由于 IObservable<T> 在我们订阅之前无法为我们提供值，因此我们订阅的时间可能很重要。想象一下 IObservable<Trade> 描述某个市场中发生的交易。如果它提供的信息是实时的，它不会告诉您在您订阅之前发生的任何交易。在 Rx 中，此类来源被描述为热门来源。
+由于 `IObservable<T>` 不能在订阅之前向订阅者提供值，因此订阅的时间就很重要了。试想，`IObservable<Trade>` 表示某个市场中发生的交易。如果它提供的信息是实时的，那么它不会告诉您任何在您订阅源之前发生的交易。在 Rx 中，此类源被描述为热源（Hot Source）。
 
-Not all sources are hot. There's nothing stopping an IObservable<T> always supplying the exact same sequence of events to any subscriber no matter when the call to Subscribe occurs. (Imagine an IObservable<Trade> which, instead of reporting live information, generates notifications based on recorded historical trade data.) Sources where it doesn't matter at all when you subscribe are known as cold sources.
-并非所有来源都是热门的。无论何时发生对 Subscribe 的调用，都无法阻止 IObservable<T> 始终向任何订阅者提供完全相同的事件序列。 （想象一下 IObservable<Trade> ，它不是报告实时信息，而是根据记录的历史交易数据生成通知。）当您订阅时根本不重要的来源称为冷来源。
+并非所有的源都是热源。有些 `IObservable<T>` 始终向所有订阅者提供完全相同的事件序列，无论这些订阅者是什么时候订阅的（试想 `IObservable<Trade>` 不是报告实时信息，而是根据记录的历史交易数据生成通知）。不用关心订阅时间的源称为冷源（Cold Source）。
 
-Here are some sources that might be represented as hot observables:
-以下是一些可能表示为热可观察量的来源：
+以下是一些热源的例子：
 
-Measurements from a sensor
-传感器测量
-Price ticks from a trading exchange
-来自交易交易所的价格变动
-An event source that distributes events immediately such as Azure Event Grid
-立即分发事件的事件源，例如 Azure 事件网格
-mouse movements 鼠标移动
-timer events 定时器事件
-broadcasts like ESB channels or UDP network packets
-广播，如 ESB 通道或 UDP 网络数据包
-And some examples of some sources that might make good cold observables:
-以及一些可能成为良好的冷可观测值的来源的示例：
+* 传感器的测量数据
 
-the contents of a collection (such as is returned by the ToObservable extension method for IEnumerable<T>)
-集合的内容（例如 IEnumerable<T> 的 ToObservable 扩展方法返回的内容）
-a fixed range of values, such as Observable.Range produces
-固定范围的值，例如 Observable.Range 产生
-events generated based on an algorithm, such as Observable.Generate produces
-基于算法生成的事件，例如 Observable.Generate 产生
-a factory for an asynchronous operation, such as FromAsync returns
-异步操作的工厂，例如 FromAsync 返回
-events produced by running conventional code such as a loop; you can create such sources with Observable.Create
-运行常规代码（例如循环）产生的事件；您可以使用 Observable.Create 创建此类源
-a streaming event provides such as Azure Event Hub or Kafka (or any other streaming-style source which holds onto events from the past to be able to deliver events from a particular moment in the stream; so not an event source in the Azure Event Grid style)
-流事件提供，例如 Azure 事件中心或 Kafka（或任何其他流式源，它们保留过去的事件，以便能够传递流中特定时刻的事件；因此不是 Azure 事件网格中的事件源风格）
-Not all sources are strictly completely hot or cold. For example, you could imagine a slight variation on a live IObservable<Trade> where the source always reports the most recent trade to new subscribers. Subscribers can count on immediately receiving something, and will then be kept up to date as new information arrives. The fact that new subscribers will always receive (potentially quite old) information is a cold-like characteristic, but it's only that first event that is cold. It's still likely that a brand new subscriber will have missed lots of information that would have been available to earlier subscribers, making this source more hot than cold.
-并非所有来源都是严格意义上的完全热或冷。例如，您可以想象实时 IObservable<Trade> 的细微变化，其中源始终向新订阅者报告最新交易。订阅者可以立即收到信息，并在新信息到达时及时了解最新情况。事实上，新订阅者总是会收到（可能很旧的）信息，这是一个类似冷的特征，但只有第一个事件是冷的。一个全新的订阅者仍然有可能错过许多早期订阅者可以获得的信息，从而使这个来源变得更热而不是冷。
+* 交易所的价格变动
 
-There's an interesting special case in which a source of events has been designed to enable applications to receive every single event in order, exactly once. Event streaming systems such as Kafka or Azure Event Hub have this characteristic—they retain events for a while, to ensure that consumers don't miss out even if they fall behind from time to time. The standard input (stdin) for a process also has this characteristic: if you run a command line tool and start typing input before it is ready to process it, the operating system will hold that input in a buffer, to ensure that nothing is lost. Windows does something similar for desktop applications: each application thread gets a message queue so that if you click or type when it's not able to respond, the input will eventually be processed. We might think of these sources as cold-then-hot. They're like cold sources in that we won't miss anything just because it took us some time to start receiving events, but once we start retrieving the data, then we can't generally rewind back to the start. So once we're up and running they are more like hot events.
-有一个有趣的特殊情况，其中事件源被设计为使应用程序能够按顺序接收每个事件，并且只接收一次。诸如 Kafka 或 Azure Event Hub 之类的事件流系统就具有这样的特点——它们将事件保留一段时间，以确保消费者即使不时落后也不会错过。进程的标准输入 (stdin) 也具有此特征：如果您运行命令行工具并在准备好处理输入之前开始键入输入，操作系统会将该输入保存在缓冲区中，以确保不会丢失任何内容。 Windows 对桌面应用程序做了类似的事情：每个应用程序线程都有一个消息队列，这样，如果您在无法响应时单击或键入，输入最终将被处理。我们可能认为这些来源先冷后热。它们就像冷源一样，我们不会因为花了一些时间才开始接收事件而错过任何东西，但一旦我们开始检索数据，我们通常就无法倒回到开始处。因此，一旦我们启动并运行，它们就更像是热门事件。
+* 立即分发事件的事件源，例如 Azure 事件网格
 
-This kind of cold-then-hot source can present a problem if we want to attach multiple subscribers. If the source starts providing events as soon as subscription occurs, then that's fine for the very first subscriber: it will receive any events that were backed up waiting for us to start. But if we wanted to attach multiple subscribers, we've got a problem: that first subscriber might receive all the notifications that were sitting waiting in some buffer before we manage to attach the second subscriber. The second subscriber will miss out.
-如果我们想要附加多个订阅者，这种先冷后热的源可能会出现问题。如果订阅发生后源就开始提供事件，那么这对于第一个订阅者来说没问题：它将接收所有已备份等待我们开始的事件。但是，如果我们想要附加多个订阅者，就会遇到一个问题：在我们设法附加第二个订阅者之前，第一个订阅者可能会收到在某个缓冲区中等待的所有通知。第二个订阅者将会错过。
+* 鼠标移动
 
-In these cases, we really want some way to rig up all our subscribers before kicking things off. We want subscription to be separate from the act of starting. By default, subscribing to a source implies that we want it to start, but Rx defines a specialised interface that can give us more control: IConnectableObservable<T>. This derives from IObservable<T>, and adds just a single method, Connect:
-在这些情况下，我们确实希望在开始之前以某种方式来配置所有订阅者。我们希望订阅与启动行为分开。默认情况下，订阅源意味着我们希望它启动，但 Rx 定义了一个专门的接口，可以为我们提供更多控制： IConnectableObservable<T> 。它派生自 IObservable<T> ，并仅添加一个方法 Connect ：
+* 定时器事件
 
+* 广播，如 ESB 通道或 UDP 网络数据包
+
+以及一些冷源的示例：
+
+* 集合的内容（例如 `IEnumerable<T>` 的 [`ToObservable`](https://www.introtorx.com/chapters/creating-observable-sequences.html#from-ienumerablet) 扩展方法返回的内容）
+
+* 固定范围的一系列值，例如 [`Observable.Range`](https://www.introtorx.com/chapters/creating-observable-sequences.html#observablerange) 产生的源
+
+* 基于算法生成的事件，例如 [`Observable.Generate`](https://www.introtorx.com/chapters/creating-observable-sequences.html#observablegenerate) 产生的源
+
+* 用于异步操作的工厂，例如 [`FromAsync`](https://www.introtorx.com/chapters/creating-observable-sequences.html#from-task) 返回的源
+
+* 运行常规代码（例如循环）产生的事件；您可以使用 [`Observable.Create`](https://www.introtorx.com/chapters/creating-observable-sequences.html#observablecreate) 创建此类源
+
+* 流事件（streaming event）提供者，例如 Azure 事件中心或 Kafka（或任何其他流式源（streaming-style source），它们保留过去的事件，以便能够传递流中特定时刻的事件，刚好与 Azure 事件网格中的事件源风格相反）
+
+并非所有源都可以被简单地分成热源或冷源。我们再回顾一下实时源 `IObservable<Trade>` 的一些细节：该源始终向新订阅者报告离他最近的交易，订阅者在订阅后可以立即收到信息（译注：这个信息是最近的，但不一定是最新的），之后每当新信息到达时都能了解最新情况。事实上新订阅者总是会收到（可能很旧的）信息，这点和冷源很像，但只有第一个接收到的事件是冷的。一个新的订阅者仍然有可能错过许多早期订阅者可以获得的信息，这点又和热源的特征很像。
+
+有一个有趣的特殊情况：事件源被设计为应用程序能够按顺序接收每个事件，并且只接收一次。像 Kafka 或 Azure Event Hub 之类的事件流系统就具有这样的特点——它们将事件保留一段时间，以确保消费者即使偶尔落后也不会错过。进程的标准输入 (stdin) 也具有此特征：如果您运行命令行工具并在它准备好处理输入之前开始敲键盘，操作系统会将该输入保存在缓冲区中，以确保不会丢失任何内容。Windows 对桌面应用程序也做了类似的事情：每个应用程序线程都有一个消息队列，这样您如果在应用程序无法响应时点击鼠标或敲击键盘，输入最终将被处理。我们可以认为这些源先冷后热：它们就像冷源一样，我们不会因为订阅后花了一些时间才开始接收事件而错过任何东西，但一旦我们开始检索数据，我们通常就无法倒回到开始处。因此，一旦我们开始运行，它们就更像热源。
+
+如果我们想要附加多个订阅者，这种先冷后热的源可能会出现问题。如果订阅发生后源就开始提供事件，那么这对第一个订阅者来说没问题，它将接收所有已备份、待处理的事件；但如果我们想要附加多个订阅者，就会遇到一个问题：在我们设法附加上第二个订阅者之前，第一个订阅者可能会接收在某个缓冲区中静待处理的所有通知。第二个订阅者将会错过这些通知。
+
+此时我们会希望在开始之前以某种方式来预先配置好所有订阅者。我们希望订阅与启动行为分开。默认情况下，订阅一个源意味着我们希望源启动，但 Rx 定义了一个专门的接口，可以为我们提供更多控制手段： [`IConnectableObservable<T>`](https://github.com/dotnet/reactive/blob/f4f727cf413c5ea7a704cdd4cd9b4a3371105fa8/Rx.NET/Source/src/System.Reactive/Subjects/IConnectableObservable.cs) 。它派生自 `IObservable<T>` ，并仅添加一个方法 `Connect` ：
+
+```C#
 public interface IConnectableObservable<out T> : IObservable<T>
 {
     IDisposable Connect();
 }
-This is useful in these scenarios where there will be some process that fetches or generates events and we need to make sure we're prepared before that starts. Because an IConnectableObservable<T> won't start until you call Connect, it provides you with a way to attach however many subscribers you need before events begin to flow.
-这在这些场景中非常有用，其中将有一些获取或生成事件的进程，并且我们需要确保在开始之前做好准备。由于 IConnectableObservable<T> 在您调用 Connect 之前不会启动，因此它为您提供了一种在事件开始流动之前附加所需数量的订阅者的方法。
+```
 
-The 'temperature' of a source is not necessarily evident from its type. Even when the underlying source is an IConnectableObservable<T>, that can often be hidden behind layers of code. So whether a source is hot, cold, or something in between, most of the time we just see an IObservable<T>. Since IObservable<T> defines just one method, Subscribe, you might be wondering how we can do anything interesting with it. The power comes from the LINQ operators that the System.Reactive NuGet library supplies.
-源的“温度”不一定从其类型中明显看出。即使底层源是 IConnectableObservable<T> ，它通常也隐藏在代码层后面。因此，无论源是热源、冷源还是介于两者之间的源，大多数时候我们只看到一个 IObservable<T> 。由于 IObservable<T> 只定义了一个方法 Subscribe ，您可能想知道我们如何用它做任何有趣的事情。其功能来自 System.Reactive NuGet 库提供的 LINQ 运算符。
+如果我们有若干获取或生成事件的进程，并且我们需要确保在开始之前做好准备，那么这个接口会非常有用。由于 `IConnectableObservable<T>` 在您调用 `Connect` 之前不会启动，因此通过它您可以在事件开始流动之前附加任意数量的订阅者。
+
+源的“冷/热”不一定能从其类型中明显看出。即使底层源是一个 `IConnectableObservable<T>` ，它也往往会隐藏在层层代码之后。因此，无论源是热源、冷源还是介于两者之间的源，大多数时候我们只能看到一个 `IObservable<T>` 。由于 `IObservable<T>` 只定义了一个 `Subscribe`方法，您可能想知道我们会如何用它做有趣的事。答案是使用 System.Reactive NuGet 包提供的 LINQ 运算符。
 
 ## LINQ 运算符及其组合
 
-So far I've shown only a very simple LINQ example, using the Where operator to filter events down to ones that meet certain criteria. To give you a flavour of how we can build more advanced functionality through composition, I'm going to introduce an example scenario.
-到目前为止，我仅展示了一个非常简单的 LINQ 示例，使用 Where 运算符将事件筛选为满足特定条件的事件。为了让您了解如何通过组合构建更高级的功能，我将介绍一个示例场景。
+到目前为止，我仅展示了一个非常简单的 LINQ 示例：使用 Where 运算符将事件筛选为满足特定条件的事件。为了让您知道如何通过组合 LINQ 运算符构建更高级的功能，我将介绍一个示例场景。
 
 Suppose you want to write a program that watches some folder on a filesystem, and performs automatic processing any time something in that folder changes. For example, web developers often want to trigger automatic rebuilds of their client side code when they save changes in the editor so they can quickly see the effect of their changes. Filesystem changes often come in bursts. Text editors might perform a few distinct operations when saving a file. (Some save modifications to a new file, then perform a couple of renames once this is complete, because this avoids data loss if a power failure or system crash happens to occur at the moment you save the file.) So you typically won't want to take action as soon as you detect file activity. It would be better to give it a moment to see if any more activity occurs, and take action only after everything has settled down.
-假设您想编写一个程序来监视文件系统上的某个文件夹，并在该文件夹中的某些内容发生更改时执行自动处理。例如，Web 开发人员通常希望在编辑器中保存更改时触发客户端代码的自动重建，以便快速查看更改的效果。文件系统更改通常会突然发生。保存文件时，文本编辑器可能会执行一些不同的操作。 （有些将修改保存到新文件，然后在完成后执行几次重命名，因为这样可以避免在保存文件时发生电源故障或系统崩溃时丢失数据。）因此您通常不会希望在检测到文件活动后立即采取行动。最好给它一点时间，看看是否有更多活动发生，并在一切稳定下来后才采取行动。
+假设您想编写一个程序来监视文件系统上的某个文件夹，并在该文件夹中的某些内容发生更改时执行自动处理（比如 Web 开发人员通常希望在编辑器中保存更改时触发客户端代码的自动重建，以便快速查看更改的效果）。文件系统更改通常会突然发生；保存文件时，文本编辑器可能会执行一些其他操作（有些编辑器将修改保存到新文件，然后在完成后执行几次重命名，这样可以避免在保存文件时发生电源故障或系统崩溃导致的数据丢失）。因此我们通常不在检测到文件活动后立即采取行动，最好给它一点时间，看看是否有更多活动发生，并在一切稳定下来后才采取行动。
 
 So we should not react directly to filesystem activity. We want take action at those moments when everything goes quiet after a flurry of activity. Rx does not offer this functionality directly, but it's possible for us to create a custom operator by combing some of the built-in operators. The following code defines an Rx operator that detects and reports such things. If you're new to Rx (which seems likely if you're reading this) it probably won't be instantly obvious how this works. This is a significant step up in complexity from the examples I've shown so far because this came from a real application. But I'll walk through it step by step, so all will become clear.
 因此我们不应该直接对文件系统活动做出反应。我们希望在一系列活动过后一切归于平静的时刻采取行动。 Rx 不直接提供此功能，但我们可以通过组合一些内置运算符来创建自定义运算符。以下代码定义了一个 Rx 运算符来检测并报告此类事件。如果您是 Rx 新手（如果您正在阅读本文，这似乎很可能），那么它可能不会立即明显看出它是如何工作的。与我迄今为止所展示的示例相比，这在复杂性上有了显着的进步，因为它来自真实的应用程序。但我会一步一步地进行，这样一切都会变得清晰。
 
+```C#
 static class RxExt
 {
     public static IObservable<IList<T>> Quiescent<T>(
@@ -156,6 +151,9 @@ static class RxExt
         return src.Buffer(zeroCrossings);
     }
 }
+```
+
+
 The first thing to say about this is that we are effectively defining a custom LINQ-style operator: this is an extension method which, like all of the LINQ operators Rx supplies, takes an IObservable<T> as its implicit argument, and produces another observable source as its result. The return type is slightly different: it's IObservable<IList<T>>. That's because once we return to a state of inactivity, we will want to process everything that just happened, so this operator will produce a list containing every value that the source reported in its most recent flurry of activity.
 首先要说的是，我们正在有效地定义一个自定义 LINQ 样式运算符：这是一个扩展方法，与 Rx 提供的所有 LINQ 运算符一样，它采用 IObservable<T> 作为其隐式参数，并产生另一个可观察的源作为其结果。返回类型略有不同：它是 IObservable<IList<T>> 。这是因为一旦我们返回到不活动状态，我们将希望处理刚刚发生的所有事情，因此该运算符将生成一个列表，其中包含源在最近的一系列活动中报告的每个值。
 
