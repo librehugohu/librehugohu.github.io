@@ -1,22 +1,23 @@
 /* .content code:not(.code-block code) {
-  background-color: #f6f7f8;
-  border: .1rem solid rgba(0,0,0,.1);
-  border-radius: 0.4rem;
-  
-} */
-
-/* .content code:not(.code-block code) {
   background-color: #eff1f2;
 } */
 
 .content code:not(.code-block code) {
-  background-color: #f6f7f8;
+  background-color: #eff1f2;
   border: .1rem solid rgba(0,0,0,.1);
   border-radius: 0.2rem;
-  
 }
 
-:root {
-  --primary-hue: 252;
-  --primary-saturation: 65%;
+:is(html[class~="dark"] .content :where(code):not(:where(.code-block code, [class~=not-prose],[class~=not-prose] *))) {
+  color: #202020;
 }
+
+/* :root {
+  --primary-hue: 311deg;
+  --primary-saturation: 100%;
+} */
+
+/* .dark {
+  --primary-hue: 224deg;
+  --primary-saturation: 100%;
+} */

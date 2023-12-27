@@ -125,11 +125,9 @@ public interface IConnectableObservable<out T> : IObservable<T>
 
 到目前为止，我仅展示了一个非常简单的 LINQ 示例：使用 Where 运算符将事件筛选为满足特定条件的事件。为了让您知道如何通过组合 LINQ 运算符构建更高级的功能，我将介绍一个示例场景。
 
-Suppose you want to write a program that watches some folder on a filesystem, and performs automatic processing any time something in that folder changes. For example, web developers often want to trigger automatic rebuilds of their client side code when they save changes in the editor so they can quickly see the effect of their changes. Filesystem changes often come in bursts. Text editors might perform a few distinct operations when saving a file. (Some save modifications to a new file, then perform a couple of renames once this is complete, because this avoids data loss if a power failure or system crash happens to occur at the moment you save the file.) So you typically won't want to take action as soon as you detect file activity. It would be better to give it a moment to see if any more activity occurs, and take action only after everything has settled down.
-假设您想编写一个程序来监视文件系统上的某个文件夹，并在该文件夹中的某些内容发生更改时执行自动处理（比如 Web 开发人员通常希望在编辑器中保存更改时触发客户端代码的自动重建，以便快速查看更改的效果）。文件系统更改通常会突然发生；保存文件时，文本编辑器可能会执行一些其他操作（有些编辑器将修改保存到新文件，然后在完成后执行几次重命名，这样可以避免在保存文件时发生电源故障或系统崩溃导致的数据丢失）。因此我们通常不在检测到文件活动后立即采取行动，最好给它一点时间，看看是否有更多活动发生，并在一切稳定下来后才采取行动。
+假设您想编写一个程序来监视文件系统上的某个文件夹，并在该文件夹中的某些内容发生更改时执行自动处理（比如 Web 开发人员通常希望在编辑器中保存更改时触发客户端代码的自动重建，以便快速查看更改的效果）。文件系统更改通常会突然发生；保存文件时，文本编辑器可能会执行一些其他操作（有些编辑器将修改保存到新文件，然后在完成后执行几次重命名，这样可以避免在保存文件时发生电源故障或系统崩溃导致的数据丢失）。因此我们通常不在检测到文件活动后立即采取行动，最好给它一点时间，看看是否有更多活动发生，并在一切尘埃落定后才采取行动。
 
-So we should not react directly to filesystem activity. We want take action at those moments when everything goes quiet after a flurry of activity. Rx does not offer this functionality directly, but it's possible for us to create a custom operator by combing some of the built-in operators. The following code defines an Rx operator that detects and reports such things. If you're new to Rx (which seems likely if you're reading this) it probably won't be instantly obvious how this works. This is a significant step up in complexity from the examples I've shown so far because this came from a real application. But I'll walk through it step by step, so all will become clear.
-因此我们不应该直接对文件系统活动做出反应。我们希望在一系列活动过后一切归于平静的时刻采取行动。 Rx 不直接提供此功能，但我们可以通过组合一些内置运算符来创建自定义运算符。以下代码定义了一个 Rx 运算符来检测并报告此类事件。如果您是 Rx 新手（如果您正在阅读本文，这似乎很可能），那么它可能不会立即明显看出它是如何工作的。与我迄今为止所展示的示例相比，这在复杂性上有了显着的进步，因为它来自真实的应用程序。但我会一步一步地进行，这样一切都会变得清晰。
+要做到这点，Rx 不直接提供此功能，但我们可以通过组合一些内置运算符来创建自定义运算符。以下代码定义了一个 Rx 运算符来检测并报告此类事件。如果您还不太熟悉 Rx，可能没法一眼看出它是如何工作的。与我迄今为止展示过的示例相比，这个示例难度陡然上升，因为它来自真实的应用程序，但我会一步一步讲解清楚。
 
 ```C#
 static class RxExt
@@ -153,143 +151,121 @@ static class RxExt
 }
 ```
 
+首先要说的是，我们实际上正在定义一个自定义 LINQ 风格的运算符：这是一个扩展方法，与 Rx 提供的所有 LINQ 运算符一样，它采用 `IObservable<T>` 作为其隐式参数，并产生另一个可观察的源作为其结果。返回类型略有不同：它是 `IObservable<IList<T>>` 。这是因为一旦我们返回到不活动状态，我们将希望处理刚刚发生的所有事情，因此该运算符将生成一个列表，其中包含源在最近的一系列活动中报告的每个值。
 
-The first thing to say about this is that we are effectively defining a custom LINQ-style operator: this is an extension method which, like all of the LINQ operators Rx supplies, takes an IObservable<T> as its implicit argument, and produces another observable source as its result. The return type is slightly different: it's IObservable<IList<T>>. That's because once we return to a state of inactivity, we will want to process everything that just happened, so this operator will produce a list containing every value that the source reported in its most recent flurry of activity.
-首先要说的是，我们正在有效地定义一个自定义 LINQ 样式运算符：这是一个扩展方法，与 Rx 提供的所有 LINQ 运算符一样，它采用 IObservable<T> 作为其隐式参数，并产生另一个可观察的源作为其结果。返回类型略有不同：它是 IObservable<IList<T>> 。这是因为一旦我们返回到不活动状态，我们将希望处理刚刚发生的所有事情，因此该运算符将生成一个列表，其中包含源在最近的一系列活动中报告的每个值。
+当我们想要展示 Rx 运算符的行为方式时，我们通常会绘制“弹珠图”。这是一张显示一个或多个 `IObservable<T>` 事件源的图，每个事件源都用一条水平线表示。源产生的每个事件都用该线上的圆圈（或称为“弹珠”）来说明，水平位置表示时间。通常，该线的左侧有一个垂直条，指示应用程序订阅源的时刻（除非源在订阅发生时立即产生事件，这时线的左侧是一个弹珠）。如果该线的右侧有箭头，则表明可观察量的生命周期超出了图表。下面的图表显示了上面的 `Quiescent` 运算符如何响应特定输入：
 
-When we want to show how an Rx operator behaves, we typically draw a 'marble' diagram. This is a diagram showing one or more IObservable<T> event sources, with each one being illustrated by a horizontal line. Each event that a source produces is illustrated by a circle (or 'marble') on that line, with the horizontal position representing timing. Typically, the line has a vertical bar on its left indicating the instant at which the application subscribed to the source, unless it happens to produce events immediately, in which case it will start with a marble. If the line has an arrowhead on the right, that indicates that the observable's lifetime extends beyond the diagram. Here's a diagram showing how the Quiescent operator above response to a particular input:
-当我们想要展示 Rx 运算符的行为方式时，我们通常会绘制“大理石”图。这是一张显示一个或多个 IObservable<T> 事件源的图，每个事件源都用一条水平线表示。源产生的每个事件都用该线上的圆圈（或“大理石”）来说明，水平位置表示时间。通常，该线的左侧有一个垂直条，指示应用程序订阅源的时刻，除非它恰好立即产生事件，在这种情况下它将以弹珠开始。如果该线的右侧有箭头，则表明可观察量的生命周期超出了图表。下面的图表显示了上面的 Quiescent 运算符如何响应特定输入：
+![](./Ch02-Quiescent-Marbles-Input-And-Output.jpg)
 
-An Rx marble diagram illustrating two observables. The first is labelled 'source', and it shows six events, labelled numerically. These fall into three groups: events 1 and 2 occur close together, and are followed by a gap. Then events 3, 4, and 5 are close together. And then after another gap event 6 occurs, not close to any. The second observable is labelled 'source.Quiescent(TimeSpan.FromSeconds(2), Scheduler.Default)'. It shows three events. The first is labelled '1, 2', and its horizontal position shows that it occurs a little bit after the '2' event on the 'source' observable. The second event on the second observable is labelled '3,4,5' and occurs a bit after the '5' event on the 'source' observable. The third event from on the second observable is labelled '6', and occurs a bit after the '6' event on the 'source' observable. The image conveys the idea that each time the source produces some events and then stops, the second observable will produce an event shortly after the source stops, which will contain a list with all of the events from the source's most recent burst of activity.
+图中源（顶行）产生了几个事件（在本例中为值 `1` 和 `2` ），然后停顿一会儿。停顿后不久， `Quiescent` 运算符返回的可观察对象（下面一行）生成了一个事件，其中包含包含这两个事件的列表（ `[1,2]` ）。然后源再次启动，以相当快的速度连续生成值 `3` 、`4` 和 `5`，然后停顿一会儿。同样，一旦停顿期持续足够长的时间， `Quiescent` 返回的源就会生成一个事件，其中包含第二波突发事件（ `[3,4,5]` ）中的所有事件。之后发生的第三波事件中只有一个事件 `6`，一旦事件 `6` 之后的停顿持续足够长的时间，`Quiescent` 源产生一个事件来报告这一点。由于来自源的最后一次突发活动仅包含一个事件，因此 `Quiescent` 可观察对象的最终输出的列表是只有单个值的列表： `[6]` 。
 
-This shows that the source (the top line) produced a couple of events (the values 1 and 2, in this example), and then stopped for a bit. A little while after it stopped, the observable returned by the Quiescent operator (the lower line) produced a single event with a list containing both of those events ([1,2]). Then the source started up again, producing the values 3, 4, and 5 in fairly quick succession, and then going quiet for a bit. Again, once the quiet spell had gone on for long enough, the source returned by Quiescent produced a single event containing all of the source events from this second burst of activity ([3,4,5]). And then the final bit of source activity shown in this diagram consists of a single event, 6, followed by more inactivity, and again, once the inactivity has gone on for long enough the Quiescent source produces a single event to report this. And since that last 'burst' of activity from the source contained only a single event, the list reported by this final output from the Quiescent observable is a list with a single value: [6].
-这表明源（顶行）产生了几个事件（在本例中为值 1 和 2 ），然后停止了一会儿。停止后不久， Quiescent 运算符返回的可观察对象（下面一行）生成了一个事件，其中包含包含这两个事件的列表 ( [1,2] )。然后源再次启动，以相当快的速度连续生成值 3 、 4 和 5 ，然后安静一会儿。同样，一旦安静期持续足够长的时间， Quiescent 返回的源就会生成一个事件，其中包含第二次活动突发 ( [3,4,5] ) 中的所有源事件。然后，此图中显示的源活动的最后一位由单个事件 6 组成，随后是更多的不活动，再次，一旦不活动持续足够长的时间， Quiescent 源产生一个事件来报告这一点。由于来自源的最后一次“突发”活动仅包含一个事件，因此 Quiescent 可观察对象的最终输出报告的列表是具有单个值的列表： [6] 。
+那么之前那段代码是如何实现这一目标的呢？关于 `Quiescent` 方法首先要注意的是，它只是使用其他现有的 Rx LINQ 运算符（ `Return` 、 `Scan` 、 `Where` 、和 `Buffer` 运算符是显式可见的，并且查询表达式将隐式使用 `SelectMany` 运算符，因为有个 C# 查询表达式在一行包含了两个 `from` 子句）进行组合，最终生成一个 `IObservable<IList<T>>`。
 
-So how does the code shown achieve this? The first thing to notice about the Quiescent method is that it's just using other Rx LINQ operators (the Return, Scan, Where, and Buffer operators are explicitly visible, and the query expression will be using the SelectMany operator, because that's what C# query expressions do when they contain two from clauses in a row) in a combination that produces the final IObservable<IList<T>> output.
-那么所示的代码是如何实现这一目标的呢？关于 Quiescent 方法首先要注意的是，它只是使用其他 Rx LINQ 运算符（ Return 、 Scan 、 Where 、和 Buffer 运算符是显式可见的，并且查询表达式将使用 SelectMany 运算符，因为这就是 C# 查询表达式在包含两个 from 子句时所做的操作行）的组合，产生最终的 IObservable<IList<T>> 输出。
+这就是 Rx 的组合方式，也是我们通常使用 Rx 的方式。我们组合使用现有的运算符，以产生我们想要的效果的方式组合（组合）。
 
-This is Rx's compositional approach, and it is how we normally use Rx. We use a mixture of operators, combined (composed) in a way that produces the effect we want.
-这就是Rx的组合方式，也是我们通常使用Rx的方式。我们使用混合运算符，以产生我们想要的效果的方式组合（组合）。
+但这种特殊的组合如何产生我们想要的效果呢？我们有几种方法来实现 `Quiescent` 运算符，而上文这个实现的基本思想是它记录最近发生的事件数量，然后每当该数字回落到零时就会产生一个结果（译注：请往下读，理解算法原理后再回顾一下这句话）。代码中的 `outstanding` 变量是一个跟踪最近发生的事件数量的 `IObservable<int>` ，此弹珠图显示了它如何响应上图中的的 `source` 事件源并生成一个新的事件源：
 
-But how does this particular combination produce the effect we want? There are a few ways we could get the behaviour that we're looking for from a Quiescent operator, but the basic idea of this particular implementation is that it keeps count of how many events have happened recently, and then produces a result every time that number drops back to zero. The outstanding variable refers to the IObservable<int> that tracks the number of recent events, and this marble diagram shows what it produces in response to the same source events as were shown on the preceding diagram:
-但这种特殊的组合如何产生我们想要的效果呢？我们可以通过几种方法从 Quiescent 运算符获取我们正在寻找的行为，但是这个特定实现的基本思想是它记录最近发生的事件数量，然后每当该数字回落到零时就会产生一个结果。 outstanding 变量引用跟踪最近事件数量的 IObservable<int> ，此弹珠图显示了它响应与之前相同的 source 事件而生成的内容如上图所示：
+![](./Ch02-Quiescent-Marbles-Outstanding.jpg)
 
-How the Quiescent operator counts the number of outstanding events. An Rx marble diagram illustrating two observables. The first is labelled 'source', and it shows the same six events as the preceding figure, labelled numerically, but this time also color-coded so that each event has a different color. As before, these events fall into three groups: events 1 and 2 occur close together, and are followed by a gap. Then events 3, 4, and 5 are close together. And then after another gap event 6 occurs, not close to any. The second observable is labelled 'outstanding' and for each of the events on the 'source' observable, it shows two events. Each such pair has the same color as on the 'source' line; the coloring is just to make it easier to see how events on this line are associated with events on the 'source' line. The first of each pair appears directly below its corresponding event on the 'source' line, and has a number that is always one higher than its immediate predecessor; the very first item shows a number of 1. The first item from the second pair is the next to appear on this line, and therefore has a number of 2. But then the second item from the first pair appears, and this lowers the number back to 1, and it's followed by the second item from the second pair, which shows 0. Since the second batch of events on the first line appear fairly close together, we see values of 1, 2, 1, 2, 1, and then 0 for these. The final event on the first line, labelled 6, has a corresponding pair on the second line reporting values of 1 and then 0. The overall effect is that each value on the second, 'outstanding' line tells us how many items have emerged from the 'source' line in the last 2 seconds.
+这张图里我用颜色对事件进行了标记，这样可以显示 `source` 事件与 `outstanding` 生成的相应事件之间的关系。每次 `source` 产生一个事件时， `outstanding` 同时产生一个事件，它的值比 `outstanding` 产生的前一个事件的值高 1；此事件产生两秒后 `outstanding` 会产生另一个事件，它的值比 `outstanding` 产生的前一个事件的值低 1（“两秒”是因为在示例中我假设 `Quiescent` 的第一个参数是 `TimeSpan.FromSeconds(2)`，就像第一个弹珠图所示）。
 
-I've colour coded the events this time so that I can show the relationship between source events and corresponding events produced by outstanding. Each time source produces an event, outstanding produces an event at the same time, in which the value is one higher than the preceding value produced by outstanding. But each such source event also causes outstanding to produce another event two seconds later. (It's two seconds because in these examples, I've presumed that the first argument to Quiescent is TimeSpan.FromSeconds(2), as shown on the first marble diagram.) That second event always produces a value that is one lower than whatever the preceding value was.
-这次我对事件进行了颜色编码，以便可以显示 source 事件与 outstanding 生成的相应事件之间的关系。每次 source 产生一个事件时， outstanding 同时产生一个事件，其中的值比 outstanding 产生的前一个值高 1。但每个此类 source 事件也会导致 outstanding 两秒后产生另一个事件。 （这是两秒，因为在这些示例中，我假设 Quiescent 的第一个参数是 TimeSpan.FromSeconds(2) ，如第一个弹珠图所示。）第二个事件总是产生一个值该值比之前的值低一个。
+这意味着 `outstanding` 中出现的每个事件都会告诉我们过去两秒内产生了多少个 `source` 事件。下图用另一种形式展示了相同的信息：它以图表的形式显示了 `outstanding` 生成的最新值。您可以看到，每次 `source` 产生新值时，`outstanding` 值都会 +1；在 `source` 生成每个值两秒后，它会 -1。
 
-This means that each event to emerge from outstanding tells us how many events source produced within the last two seconds. This diagram shows that same information in a slightly different form: it shows the most recent value produced by outstanding as a graph. You can see the value goes up by one each time source produces a new value. And two seconds after each value produced by source, it drops back down by one.
-这意味着 outstanding 中出现的每个事件都会告诉我们过去两秒内产生了多少个 source 事件。该图以略有不同的形式显示了相同的信息：它以图表的形式显示了 outstanding 生成的最新值。您可以看到，每次 source 产生新值时，该值都会增加 1。在 source 生成每个值两秒后，它会回落一。
+![](./Ch02-Quiescent-Marbles-Outstanding-Value.jpg)
 
-The number of outstanding events as a graph. An Rx marble diagram illustrating the 'source' observables, and the second observable from the preceding diagram this time illustrated as a bar graph showing the latest value. This makes it easier to see that the 'outstanding' value goes up each time a new value emerges from 'source', and then goes down again two seconds later, and that when values emerge close together this running total goes higher. It also makes it clear that the value drops to zero between the 'bursts' of activity.
+在简单的情况下，例如最终事件 `6` ，它是在该时间附近发生的唯一事件，当事件发生时 `outstanding` 值会 +1，然后两秒钟后 -1。在图片的最左侧，情况稍微复杂一些：我们以相当快的速度连续获得两个事件，因此 `outstanding` 值上升到 1，然后上升到 2，然后回落到 1，然后再次降至零。中间部分看起来有点混乱：
 
-In simple cases like the final event 6, in which it's the only event that happens at around that time, the outstanding value goes up by one when the event happens, and drops down again two seconds later. Over on the left of the picture it's a little more complex: we get two events in fairly quick succession, so the outstanding value goes up to one and then up to two, before falling back down to one and then down to zero again. The middle section looks a little more messy—the count goes up by one when the source produces event 3, and then up to two when event 4 comes in. It then drops down to one again once two seconds have passed since the 3 event, but then another event, 5, comes in taking the total back up to two. Shortly after that it drops back to one again because it has now been two seconds since the 4 event happened. And then a bit later, two seconds after the 5 event it drops back to zero again.
-在简单的情况下，例如最终事件 6 ，它是在该时间附近发生的唯一事件，当事件发生时 outstanding 值会增加 1，然后再次下降两秒钟后。在图片的左侧，情况稍微复杂一些：我们以相当快的速度连续获得两个事件，因此 outstanding 值上升到 1，然后上升到 2，然后回落到 1，然后再次降至零。中间部分看起来有点混乱——当 source 产生事件 3 时，计数增加 1，当事件 4 到来时，计数增加 2一旦 3 事件过去两秒，它就会再次下降到 1，但随后另一个事件 5 出现，使总数回到 2。不久之后，它再次回落到 1，因为距离 4 事件发生已经过去了两秒。然后稍后，在 5 事件发生两秒后，它再次回落到零。
+* 当 `source` 产生事件 `3` 时，`outstanding` 值增加到 1；
+* 当事件 `4` 到来时，`outstanding` 值增加到 2；
+* 当 `3` 事件过去两秒时，`outstanding` 值就会再次下降到 1；
+* 但随后出现了另一个事件 `5`，使 `outstanding` 值再次回到 2；
+* 不久之后，`outstanding` 值再次回落到 1，因为距离 `4` 事件发生已经过去了两秒；
+* 最后，在 `5` 事件发生两秒后，`outstanding` 值回落到零。
 
-That middle section is the messiest, but it's also most representative of the kind of activity this operator is designed to deal with. Remember, the whole point here is that we're expecting to see flurries of activity, and if those represents filesystem activity, they will tend to be slightly chaotic in nature, because storage devices don't always have entirely predictable performance characteristics (especially if it's a magnetic storage device with moving parts, or remote storage in which variable networking delays might come into play).
-中间部分是最混乱的，但它也最能代表该操作员要处理的活动类型。请记住，这里的要点是，我们期望看到大量的活动，如果这些活动代表文件系统活动，那么它们本质上往往会稍微混乱，因为存储设备并不总是具有完全可预测的性能特征（特别是如果它是一种带有移动部件的磁性存储设备，或者是远程存储，其中可能会出现可变的网络延迟）。
+中间部分是最混乱的，但它也最能代表该运算符要处理的活动类型。请记住，这里的要点是，我们期望看到大量的活动，如果这些活动代表文件系统活动，那么它们本质上往往会有点混乱，因为存储设备并不总是具有完全可预测的性能特征（特别是如果它是一种带有移动部件的磁性存储设备，或者是远程存储，其中可能会出现可变的网络延迟）。
 
-With this measure of recent activity in hand, we can spot the end of bursts of activity by watching for when outstanding drops back to zero, which is what the observable referred to by zeroCrossing in the code above does. (That's just using the Where operator to filter out everything except the events where outstanding's current value returns to zero.)
-有了对近期活动的测量，我们可以通过观察 outstanding 何时回落到零来发现活动爆发的结束，这就是 zeroCrossing 中的可观察到的内容。上面的代码确实如此。 （这只是使用 Where 运算符过滤掉除 outstanding 的当前值返回零的事件之外的所有内容。）
+有了对近期活动的测量，我们可以通过观察 `outstanding` 何时回落到零来确定活动爆发期的结束，这就是 `zeroCrossing` 中的事件。正如上面的代码所示（只需要用 `Where` 运算符过滤出 `outstanding` 生成的值为 0 的事件）。
 
-But how does outstanding itself work? The basic approach here is that every time source produces a value, we actually create a brand new IObservable<int>, which produces exactly two values. It immediately produces the value 1, and then after the specified timespan (2 seconds in these examples) it produces the value -1. That's what's going in in this clause of the query expression:
-但是 outstanding 本身是如何工作的呢？这里的基本方法是，每次 source 产生一个值时，我们实际上创建一个全新的 IObservable<int> ，它恰好产生两个值。它立即生成值 1，然后在指定的时间跨度（这些示例中为 2 秒）后生成值 -1。这就是查询表达式的子句中的内容：
+但是 `outstanding` 本身是如何工作的呢？每次 `source` 产生一个值时，我们实际上创建了一个全新的 `IObservable<int>` ，它恰好产生两个值。它立即生成值 1，然后在指定的时间跨度（本例中为 2 秒）后生成值 -1。这就是 `onoffs` 子句中的部分内容：
 
+```C#
 from delta in Observable
     .Return(1, scheduler)
     .Concat(Observable
         .Return(-1, scheduler)
         .Delay(minimumInactivityPeriod, scheduler))
-I said Rx is all about composition, and that's certainly the case here. We are using the very simple Return operator to create an IObservable<int> that immediately produces just a single value and then terminates. This code calls that twice, once to produce the value 1 and again to produce the value -1. It uses the Delay operator so that instead of getting that -1 value immediately, we get an observable that waits for the specified time period (2 seconds in these examples, but whatever minimumInactivityPeriod is in general) before producing the value. And then we use Concat to stitch those two together into a single IObservable<int> that produces the value 1, and then two seconds later produces the value -1.
-我说过 Rx 就是关于组合，这里的情况当然也是如此。我们使用非常简单的 Return 运算符来创建一个 IObservable<int> ，它立即生成一个值，然后终止。此代码调用两次，一次生成值 1 ，再次生成值 -1 。它使用 Delay 运算符，这样我们就不会立即获取 -1 值，而是得到一个等待指定时间段（在这些示例中为 2 秒，但无论 minimumInactivityPeriod 通常是在产生值之前。然后我们使用 Concat 将这两个拼接在一起形成一个 IObservable<int> ，生成值 1 ，然后两秒后生成值 -1
+```
 
-Although this produces a brand new IObservable<int> for each source event, the from clause shown above is part of a query expression of the form from ... from .. select, which the C# compiler turns into a call to SelectMany, which has the effect of flattening those all back into a single observable, which is what the onoffs variable refers to. This marble diagram illustrates that:
-尽管这会为每个 source 事件生成一个全新的 IObservable<int> ，但上面显示的 from 子句是 from ... from .. select ，C# 编译器将其转换为对 SelectMany 的调用，其效果是将它们全部展平为单个可观察量，这就是 onoffs 变量所引用的内容。这个弹珠图说明了这一点：
+我说过 Rx 就是关于“组合”的框架，这里也一样。我们用一个简单的 `Return` 运算符来创建一个 `IObservable<int>` ，它立即生成一个值，然后终止。我们使用了两次，一次生成值 1 ，另一次生成值 -1。第二个 `Return` 运算符后面跟了一个 `Delay` 运算符，这样我们就不会立即得到 -1 值，而是在产生值之前延迟一段时间（在本例中 `minimumInactivityPeriod` 为 2 秒）。然后我们使用 `Concat` 运算符将这两个 `Return` 运算符拼接在一起形成一个先生成值 1、两秒后生成值 -1 的`IObservable<int>`。
 
-The number of outstanding events as a graph. Several Rx marble diagrams, starting with the 'source' observable from earlier figures, followed by one labelled with the LINQ query expression in the preceding example, which shows 6 separate marble diagrams, one for each of the elements produced by 'source'. Each consists of two events: one with value 1, positioned directly beneath the corresponding event on 'source' to indicate that they happen simultaneously, and then one with the value -1 two seconds later. Beneath this is a marble diagram labelled 'onoffs' which contains all the same events from the preceding 6 diagrams, but merged into a single sequence. These are all colour coded ot make it easier to see how these events correspond to the original events on 'source'. Finally, we have the 'outstanding' marble diagram which is exactly the same as in the preceding figure.
+尽管这会为每个 `source` 事件生成一个全新的 `IObservable<int>` ，但上面显示的 `from` 子句是查询表达式 `from ... from .. select` 的一部分，C# 编译器将其转换为对 `SelectMany` 的调用，其效果是将它们全部合并为单个可观察量，这就是 `onoffs` 变量的内容。下面这个弹珠图展示了这点：
 
-This also shows the outstanding observable again, but we can now see where that comes from: it is just the running total of the values emitted by the onoffs observable. This running total observable is created with this code:
-这也再次显示了 outstanding 可观察值，但我们现在可以看到它的来源：它只是 onoffs 可观察值发出的值的运行总计。这个运行总计可观察值是使用以下代码创建的：
+![](./Ch02-Quiescent-Marbles-On-Offs.jpg)
 
+图中也展示了 `outstanding`，但我们现在可以看到它的来源：`outstanding` 累加 `onoffs` 生成的值，并在 `onoffs` 产生值的同时生成包含当前累加值的事件。这个过程通过以下代码实现：
+
+```C#
 IObservable<int> outstanding = onoffs.Scan(0, (total, delta) => total + delta);
-Rx's Scan operator works much like the standard LINQ Aggregate operator, in that it cumulatively applies an operation (addition, in this case) to every single item in a sequence. The different is that whereas Aggregate produces just the final result once it reaches the end of the sequence, Scan shows all of its working, producing the accumulated value so far after each input. So this means that outstanding will produce an event every time onoffs produces one, and that event's value will be the running total—the sum total of every value from onoffs so far.
-Rx 的 Scan 运算符的工作方式与标准 LINQ Aggregate 运算符非常相似，因为它会将操作（在本例中为加法）累积地应用于序列中的每个项目。不同之处在于， Aggregate 在到达序列末尾时仅生成最终结果，而 Scan 显示其所有工作情况，在每次输入后生成到目前为止的累积值。因此，这意味着每次 onoffs 生成一个事件时， outstanding 都会生成一个事件，并且该事件的值将是运行总计 - 来自 onoffs 到目前为止。
+```
 
-So that's how outstanding comes to tell us how many events source produced within the last two seconds (or whatever minimumActivityPeriod has been specified).
-这就是 outstanding 告诉我们过去两秒内产生了多少个 source 事件（或指定的任何 minimumActivityPeriod 事件）。
+Rx 的 `Scan` 运算符的工作方式与标准 LINQ 的 `[Aggregate](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/aggregation-operations)` 运算符非常相似，因为它会将操作（在本例中为加法）累积地应用于序列中的每个项。不同之处在于，`Aggregate` 只在到达序列末尾时生成最终结果，而 `Scan` 在每次获得输入后都会生成到目前为止的累积值。这意味着每次 `onoffs` 生成一个事件时，`outstanding` 都会生成一个事件，并且该事件的值是当前的累加值。
 
-The final piece of the puzzle is how we go from the zeroCrossings (which produces an event every time the source has gone quiescent) to the output IObservable<IList<T>>, which provides all of the events that happened in the most recent burst of activity. Here we're just using Rx's Buffer operator, which is designed for exactly this scenario: it slices its input into chunks, producing an event for each chunk, the value of which is an IList<T> containing the items for the chunk. Buffer can slice things up a few ways, but in this case we're using the form that starts a new slice each time some IObservable<T> produces an item. Specifically, we're telling Buffer to slice up the source by creating a new chunk every time zeroCrossings produces a new event.
-难题的最后一部分是我们如何从 zeroCrossings （每次源静止时生成一个事件）到输出 IObservable<IList<T>> ，它提供了所有事件发生在最近的一次活动爆发中。这里我们只使用 Rx 的 Buffer 运算符，它是专门为这种场景而设计的：它将输入切成块，为每个块生成一个事件，其值为 IList<T> 包含该块的项目。 Buffer 可以通过几种方式对事物进行切片，但在本例中，我们使用的形式是在每次 IObservable<T> 生成一个项目时启动一个新切片。具体来说，我们告诉 Buffer 通过在每次 zeroCrossings 产生新事件时创建一个新块来分割 source 。
+这就是 `outstanding` 如何告诉我们过去的 `minimumActivityPeriod` 内（本例为 2 秒）产生了多少个 `source` 事件的算法原理。
 
-(One last detail, just in case you saw it and were wondering, is that this method requires an IScheduler. This is an Rx abstraction for dealing with timing and concurrency. We need it because we need to be able to generate events after a one second delay, and that sort of time-driven activity requires a scheduler.)
-（最后一个细节，以防万一您看到它并想知道，该方法需要一个 IScheduler 。这是一个用于处理时序和并发性的 Rx 抽象。我们需要它，因为我们需要能够一秒延迟后生成事件，这种时间驱动的活动需要调度程序。）
+难题的最后一部分是我们如何从 `IObservable<int>` 类型的 `zeroCrossings`（每次源静止时产生一个事件）生成并返回 `IObservable<IList<T>>`（它提供了最近一次活动爆发期中发生的所有事件）。这里我们只使用 Rx 的 `Buffer` 运算符，它是专门为这种场景而设计的：它将输入切成块，为每个块生成一个事件，其值为 `IList<T>` 类型，它的项就是这个块的项。`Buffer` 可以通过几种方法对目标进行切片，在本例中，我们使用的方法是在每次 `IObservable<T>` 生成一个项目时创建一个新切片。具体来说，我们告诉 `Buffer` 在每次 `zeroCrossings` 产生新事件时创建一个新块来分割 `source`。
 
-We'll get into all of these operators and the workings of schedulers in more detail in later chapters. For now, the key point is that we typically use Rx by creating a combination of LINQ operators that process and combine IObservable<T> sources to define the logic that we require.
-我们将在后面的章节中更详细地介绍所有这些运算符和调度程序的工作原理。目前，关键点是我们通常通过创建 LINQ 运算符的组合来使用 Rx，这些运算符处理和组合 IObservable<T> 源来定义我们所需的逻辑。
+（最后一点，该方法需要一个 `IScheduler` 。这是一个用于处理时序和并发性的 Rx 抽象。我们需要它，因为我们需要能够一秒延迟后生成事件，这种时间驱动的活动需要调度程序。）
 
-Notice that nothing in that example actually called the one and only method that IObservable<T> defines (Subscribe). There will always be something somewhere that ultimately consumes the events, but most of the work of using Rx tends to entail declaratively defining the IObservable<T>s we need.
-请注意，该示例中没有任何内容实际调用 IObservable<T> 定义的唯一方法 ( Subscribe )。总会有一些东西最终会消耗事件，但是使用 Rx 的大部分工作往往需要声明性地定义我们需要的 IObservable<T> 。
+我们将在后面的章节中更详细地介绍所有这些运算符和调度程序的工作原理。目前，我们只需要知道我们一般通过创建 LINQ 运算符的组合来使用 Rx，这些运算符处理和组合 `IObservable<T>` 源来定义我们所需的逻辑。
 
-Now that you've seen an example of what Rx programming looks like, we can address some obvious questions about why Rx exists at all.
-现在您已经看到了 Rx 编程的示例，我们可以解决一些关于 Rx 为何存在的明显问题。
+请注意，该示例中没有任何内容实际调用 `IObservable<T>` 定义的唯一方法（ `Subscribe` ）。总会有一些东西最终会使用事件，但是使用 Rx 的大部分工作往往需要声明性地定义我们需要的 `IObservable<T>` 。
 
-## 使用.NET 事件会出什么问题？
+现在您已经看到了 Rx 编程的示例，我们可解答一些关于 Rx 为何存在的明显问题。
 
-.NET has had built-in support for events from the very first version that shipped over two decades ago—events are part of .NET's type system. The C# language has intrinsic support for this in the form of the event keyword, along with specialized syntax for subscribing to events. So why, when Rx turned up some 10 years later, did it feel the need to invent its own representation for streams of events? What was wrong with the event keyword?
-从二十多年前发布的第一个版本开始，.NET 就内置了对事件的支持——事件是 .NET 类型系统的一部分。 C# 语言以 event 关键字的形式对此提供内在支持，并提供用于订阅事件的专用语法。那么，为什么当 Rx 大约 10 年后出现时，它觉得有必要发明自己的事件流表示形式呢？ event 关键字出了什么问题？
+## 为什么不用 .NET 事件？
 
-The basic problem with .NET events is that they get special handling from the .NET type system. Ironically, this makes them less flexible than if there had been no built-in support for the idea of events. Without .NET events, we would have needed some sort of object-based representation of events, at which point you can do all the same things with events that you can do with any other objects: you could store them in fields, pass them as arguments to methods, define methods on them and so on.
-.NET 事件的基本问题是它们需要从 .NET 类型系统进行特殊处理。具有讽刺意味的是，这使得它们比没有对事件想法的内置支持更不灵活。如果没有 .NET 事件，我们将需要某种基于对象的事件表示，此时您可以对事件执行与对任何其他对象执行的所有相同操作：您可以将它们存储在字段中，将它们传递为方法的参数、定义方法的方法等等。
+从二十多年前发布的第一个版本开始，.NET 就内置了对事件的支持——事件是 .NET 类型系统的一部分。 C# 语言以 `event` 关键字的形式对事件提供原生支持，并提供用于订阅事件的专用语法。那为什么大约 10 年后 Rx 出现时，它觉得有必要发明自己的事件流表示形式呢？`event` 关键字有什么问题？
 
-To be fair to .NET version 1, it wasn't really possible to define a good object-based representation of events without generics, and .NET didn't get those until version 2 (three and a half years after .NET 1.0 shipped). Different event sources need to be able to report different data, and .NET events provided a way to parameterize events by type. But once generics came along, it became possible to define types such as IObservable<T>, and the main advantage that events offered went away. (The other benefit was some language support for implementing and subscribing to events, but in principle that's something that could have been done for Rx if Microsoft had chosen to. It's not a feature that required events to be fundamentally different from other features of the type system.)
-公平地说，.NET 版本 1 确实不可能在没有泛型的情况下定义良好的基于​​对象的事件表示，并且 .NET 直到版本 2 才实现这些（.NET 1.0 发布三年半后） ）。不同的事件源需要能够报告不同的数据，而.NET事件提供了一种按类型参数化事件的方法。但是，一旦泛型出现，就可以定义诸如 IObservable<T> 之类的类型，并且事件提供的主要优势就消失了。 （另一个好处是对实现和订阅事件的一些语言支持，但原则上，如果 Microsoft 选择的话，这是可以为 Rx 做的事情。这不是一个要求事件与该类型的其他功能有根本不同的功能系统。）
+.NET 事件的基本问题是它们需要通过 .NET 类型系统进行特殊处理。讽刺的是，这使得它们对比没有内置事件支持的情形更不灵活。如果没有 .NET 事件，我们必然需要某种基于对象（object）的事件表示，此时您可以像处理其他对象一样处理事件：您可以将它们存储在字段中、将它们作为方法的参数传递、给它们定义方法等等。
 
-Consider the example we've just worked through. It was possible to define our own custom LINQ operator, Quiescent, because IObservable<T> is just an interface like any other, meaning that we're free to write extension methods for it. You can't write an extension method for an event.
-考虑一下我们刚刚完成的例子。可以定义我们自己的自定义 LINQ 运算符 Quiescent ，因为 IObservable<T> 只是一个与其他接口一样的接口，这意味着我们可以自由地为其编写扩展方法。您无法为事件编写扩展方法。
+公平地说，.NET 版本 1 确实不可能在没有泛型的情况下定义良好的基于​​对象的事件表示，并且 .NET 直到版本 2 才实现这些（.NET 1.0 发布三年半后）。不同的事件源需要报告不同的数据，而 NET 事件提供了一种按类型参数化事件的方法。但是一旦泛型出现，就可以定义诸如 `IObservable<T>` 之类的类型，并且事件提供的主要优势就消失了（另一个好处是有了一些与实现和订阅事件相关的语言支持，但原则上，如果 Microsoft 愿意 Rx 也能拥有这些语言支持。这个特性并不要求事件与类型系统的其他特性有根本区别）。
 
-Also, we are able to wrap or adapt IObservable<T> sources. Quiescent took an IObservable<T> as an input, and combined various Rx operators to produce another observable as an output. Its input was a source of events that could be subscribed to, and its output was also a source of events that could be subscribed to. You can't do this with .NET events—you can't write a method that accepts an event as an argument, or that returns an event.
-此外，我们还能够包装或改编 IObservable<T> 源。 Quiescent 将 IObservable<T> 作为输入，并组合各种 Rx 运算符以生成另一个可观察量作为输出。它的输入是可以订阅的事件源，它的输出也是可以订阅的事件源。您无法使用 .NET 事件执行此操作 — 您无法编写接受事件作为参数或返回事件的方法。
+考虑一下我们刚刚完成的例子。可以定义我们自己的自定义 LINQ 运算符 `Quiescent`，因为 `IObservable<T>` 只是一个普通的接口，这意味着我们可以自由地为其编写扩展方法，而您无法为事件编写扩展方法。
 
-These limitations are sometimes described by saying that .NET events are not first class citizens. There are things you can do with values or references in .NET that you can't do with events.
-这些限制有时被描述为“.NET 事件不是一等公民”。有些事情可以用 .NET 中的值或引用来完成，而不能用事件来完成。
+此外，我们还能够包装或改造 `IObservable<T>` 源。`Quiescent` 将 `IObservable<T>` 作为输入，并组合各种 Rx 运算符以生成另一个可观察量作为输出。它的输入是可以订阅的事件源，它的输出也是可以订阅的事件源。您无法使用 .NET 事件实现这点——您无法编写接受事件作为参数或返回事件的方法。
 
-If we represent an event source as a plain old interface, then it is a first class citizen: it can use all of the functionality we expect with other objects and values precisely because it's not something special.
+这些限制有时被描述为“.NET 事件不是一等公民”。有些事情可以用 .NET 中的值类型或引用类型来完成，而不能用事件来完成。
+
 如果我们将事件源表示为普通的旧接口，那么它就是一等公民：它可以使用我们期望的其他对象和值的所有功能，正是因为它不是什么特殊的东西。
 
 ## 流（Stream）呢？
-I've described IObservable<T> as representing a stream of events. This raises an obvious question: .NET already has System.IO.Stream, so why not just use that?
-我将 IObservable<T> 描述为代表事件流。这提出了一个明显的问题：.NET 已经有了 System.IO.Stream ，那么为什么不直接使用它呢？
 
-The short answer is that streams are weird because they represent an ancient concept in computing dating back long before the first ever Windows operating system shipped, and as such they have quite a lot of historical baggage. This means that even a scenario as simple as "I have some data, and want to make that available immediately to all interested parties" is surprisingly complex to implement though the Stream type.
-简而言之，流很奇怪，因为它们代表了一个古老的计算概念，可以追溯到第一个 Windows 操作系统发布之前很久，因此它们有相当多的历史包袱。这意味着，即使是像“我有一些数据，并且希望立即将其提供给所有感兴趣的各方”这样简单的场景，通过 Stream 类型实现起来也非常复杂。
+我之前说 `IObservable<T>` 可以表示事件流。这就有了一个明显的问题：.NET 已经有了 `System.IO.Stream` 流，为什么不直接使用它呢？
 
-Moreover, Stream doesn't provide any way to indicate what type of data will emerge—it only knows about bytes. Since .NET's type system supports generics, it is natural to want the types that represent event streams to indicate the event type through a type parameter.
-此外， Stream 不提供任何方法来指示将出现什么类型的数据——它只知道字节。由于.NET的类型系统支持泛型，因此很自然地希望表示事件流的类型通过类型参数来指示事件类型。
+简而言之，流很奇怪，因为它们代表了一个古老的计算概念，可以追溯到第一个 Windows 操作系统发布之前很久，因此它们有相当多的历史包袱。这意味着即使是像“我有一些数据，并且希望立即将其提供给所有感兴趣的各方”这样简单的场景，通过 `Stream` 类型实现起来也非常复杂。
 
-So even if you did use Stream as part of your implementation, you'd want to introduce some sort of wrapper abstraction. If IObservable<T> didn't exist, you'd need to invent it.
-因此，即使您确实使用 Stream 作为实现的一部分，您也需要引入某种包装器抽象。如果 IObservable<T> 不存在，您就需要发明它。
+此外， `Stream` 不提供任何方法来指示将出现什么类型的数据——它只知道字节。由于.NET的类型系统支持泛型，因此很自然地会希望表示事件流的类型通过类型参数来指示事件类型。
 
-It's certainly possible to use IO streams in Rx, but they are not the right primary abstraction.
-当然可以在 Rx 中使用 IO 流，但它们不是正确的主要抽象。
+因此，即使您确实使用 `Stream` 作为实现的一部分，您也需要引入某种包装器抽象。比如若是 `IObservable<T>` 不存在，您就需要发明它。
 
-(If you are unconvinced, see Appendix A: What's Wrong with Classic IO Streams for a far more detailed explanation of exactly why Stream is not well suited to this task.)
-（如果您不相信，请参阅附录 A：经典 IO 流有何问题，以获取关于 Stream 为何不太适合此任务的更详细解释。）
+当然可以在 Rx 中使用 IO 流，但它们也不合适。（如果您不相信，请参阅 [附录 A：经典 IO 流有何问题](../../appendix/a.1-classic-io-streams-problems/)）
 
-Now that we've seen why IObservable<T> needs to exist, we need to look at its counterpart, IObserver<T>.
-现在我们已经了解了为什么 IObservable<T> 需要存在，我们需要看看它的对应项 IObserver<T> 。
+现在我们已经了解了为什么需要 `IObservable<T>`，接下来让我们看看和它相对的 `IObserver<T>`。
 
 ## IObserver<T>
 
 Earlier, I showed the definition of IObservable<T>. As you saw, it has just one method, Subscribe. And this method takes just one argument, of type IObserver<T>. So if you want to observe the events that an IObservable<T> has to offer, you must supply it with an IObserver<T>. In the examples so far, we've just supplied a simple callback, and Rx has wrapped that in an implementation of IObserver<T> for us, but even though this is very often the way we will receive notifications in practice, you still need to understand IObserver<T> to use Rx effectively. It is not a complex interface:
 之前，我展示了 IObservable<T> 的定义。正如您所看到的，它只有一个方法 Subscribe 。该方法只接受一个 IObserver<T> 类型的参数。因此，如果您想观察 IObservable<T> 必须提供的事件，则必须为其提供 IObserver<T> 。在到目前为止的示例中，我们只是提供了一个简单的回调，Rx 已将其包装在 IObserver<T> 的实现中，但即使这通常是我们在实践中接收通知的方式，您仍然需要了解 IObserver<T> 才能有效地使用 Rx。它不是一个复杂的接口：
 
+```C#
 public interface IObserver<in T>
 {
     void OnNext(T value);
     void OnError(Exception error);
     void OnCompleted();
 }
+```
+
 As with IObservable<T>, you can find the source for IObserver<T> in the .NET runtime GitHub repository, because both of these interfaces are built into the runtime libraries.
 与 IObservable<T> 一样，您可以在 .NET 运行时 GitHub 存储库中找到 IObserver<T> 的源代码，因为这两个接口都内置于运行时库中。
 

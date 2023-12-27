@@ -129,4 +129,4 @@ ticks.Subscribe(
 Console.ReadLine();
 ```
 
-如果这看起来不是很令人激动，那是因为它是一个能创建的最简单示例，并且从本质上讲，Rx 有一个非常简单的编程模型。力量来自于组合——我们可以使用 System.Reactive 库中的构建块来描述我们将原始的低级事件转变为高价值见解的处理过程。但要做到这一点，我们必须首先了解 [Rx 的关键类型 IObservable<T> 和 IObserver<T>](https://www.introtorx.com/chapters/key-types.html)。
+如果这看起来不是很令人激动，那是因为它是一个能创建的最简单示例，并且从本质上讲，Rx 有一个非常简单的编程模型。力量来自于组合——我们可以使用 System.Reactive 库中的构建块来描述我们将原始的低级事件转变为高价值见解的处理过程。但要做到这一点，我们必须首先了解 [Rx 的关键类型 IObservable<T> 和 IObserver<T>](../1.2-key-types/)。
