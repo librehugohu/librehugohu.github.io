@@ -208,7 +208,7 @@ from delta in Observable
 IObservable<int> outstanding = onoffs.Scan(0, (total, delta) => total + delta);
 ```
 
-Rx 的 `Scan` 运算符的工作方式与标准 LINQ 的 `[Aggregate](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/aggregation-operations)` 运算符非常相似，因为它会将操作（在本例中为加法）累积地应用于序列中的每个项。不同之处在于，`Aggregate` 只在到达序列末尾时生成最终结果，而 `Scan` 在每次获得输入后都会生成到目前为止的累积值。这意味着每次 `onoffs` 生成一个事件时，`outstanding` 都会生成一个事件，并且该事件的值是当前的累加值。
+Rx 的 `Scan` 运算符的工作方式与标准 LINQ 的 [`Aggregate`](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/aggregation-operations) 运算符非常相似，因为它会将操作（在本例中为加法）累积地应用于序列中的每个项。不同之处在于，`Aggregate` 只在到达序列末尾时生成最终结果，而 `Scan` 在每次获得输入后都会生成到目前为止的累积值。这意味着每次 `onoffs` 生成一个事件时，`outstanding` 都会生成一个事件，并且该事件的值是当前的累加值。
 
 这就是 `outstanding` 如何告诉我们过去的 `minimumActivityPeriod` 内（本例为 2 秒）产生了多少个 `source` 事件的算法原理。
 
@@ -254,8 +254,7 @@ Rx 的 `Scan` 运算符的工作方式与标准 LINQ 的 `[Aggregate](https://le
 
 ## IObserver<T>
 
-Earlier, I showed the definition of IObservable<T>. As you saw, it has just one method, Subscribe. And this method takes just one argument, of type IObserver<T>. So if you want to observe the events that an IObservable<T> has to offer, you must supply it with an IObserver<T>. In the examples so far, we've just supplied a simple callback, and Rx has wrapped that in an implementation of IObserver<T> for us, but even though this is very often the way we will receive notifications in practice, you still need to understand IObserver<T> to use Rx effectively. It is not a complex interface:
-之前，我展示了 IObservable<T> 的定义。正如您所看到的，它只有一个方法 Subscribe 。该方法只接受一个 IObserver<T> 类型的参数。因此，如果您想观察 IObservable<T> 必须提供的事件，则必须为其提供 IObserver<T> 。在到目前为止的示例中，我们只是提供了一个简单的回调，Rx 已将其包装在 IObserver<T> 的实现中，但即使这通常是我们在实践中接收通知的方式，您仍然需要了解 IObserver<T> 才能有效地使用 Rx。它不是一个复杂的接口：
+之前，我展示了 `IObservable<T>` 的定义。正如您所看到的，它只有一个方法 `Subscribe`。该方法只接受一个 `IObserver<T>` 类型的参数。因此，如果您想观察 `IObservable<T>` 提供的事件，则必须为其提供一个 `IObserver<T>` 类型的参数。到目前为止，我们只是提供了一个简单的回调，然后 Rx 将其包装在 `IObserver<T>` 的实现中。一般情况下这就能满足我们的需求了，您仍然需要进一步了解 `IObserver<T>` 才能有效地使用 Rx，它不是一个复杂的接口：
 
 ```C#
 public interface IObserver<in T>
@@ -266,12 +265,11 @@ public interface IObserver<in T>
 }
 ```
 
-As with IObservable<T>, you can find the source for IObserver<T> in the .NET runtime GitHub repository, because both of these interfaces are built into the runtime libraries.
-与 IObservable<T> 一样，您可以在 .NET 运行时 GitHub 存储库中找到 IObserver<T> 的源代码，因为这两个接口都内置于运行时库中。
+与 `IObservable<T>` 一样，您可以在 .NET 运行时 GitHub 存储库中找到 [`IObserver<T>`](https://github.com/dotnet/runtime/blob/7cf329b773fa5ed544a9377587018713751c73e3/src/libraries/System.Private.CoreLib/src/System/IObserver.cs) 的源代码，因为这两个接口都内置于运行时库中。
 
-If we wanted to create an observer that printed values to the console it would be as easy as this:
 如果我们想创建一个将值打印到控制台的观察者，那么就像这样简单：
 
+```C#
 public class MyConsoleObserver<T> : IObserver<T>
 {
     public void OnNext(T value)
@@ -289,78 +287,73 @@ public class MyConsoleObserver<T> : IObserver<T>
         Console.WriteLine("Sequence terminated");
     }
 }
-In the preceding chapter, I used a Subscribe extension method that accepted a delegate which it invoked each time the source produced an item. This method is defined by Rx's ObservableExtensions class, which also defines various other extension methods for IObservable<T>. It includes overloads of Subscribe that enable me to write code that has the same effect as the preceding example, without needing to provide my own implementation of IObserver<T>:
-在前一章中，我使用了 Subscribe 扩展方法，该方法接受委托，每次源生成项目时都会调用该委托。该方法由 Rx 的 ObservableExtensions 类定义，该类还为 IObservable<T> 定义了各种其他扩展方法。它包含 Subscribe 的重载，使我能够编写与前面的示例具有相同效果的代码，而无需提供我自己的 IObserver<T> 实现：
+```
 
+在前一章中，我使用了 `Subscribe` 扩展方法，该方法接受一个委托，每次源生成项目时都会调用该委托。该方法由 Rx 的 `ObservableExtensions` 类定义，该类还为 `IObservable<T>` 定义了各种其他扩展方法。它包含 `Subscribe` 的重载，使我能够编写与前面的示例功能一样的代码，而无需提供我自己的 `IObserver<T>` 实现：
+
+```C#
 source.Subscribe(
     value => Console.WriteLine($"Received value {value}"),
     error => Console.WriteLine($"Sequence faulted with {error}"),
     () => Console.WriteLine("Sequence terminated")
 );
-The overloads of Subscribe where we don't pass all three methods (e.g., my earlier example just supplied a single callback corresponding to OnNext) are equivalent to writing an IObserver<T> implementation where one or more of the methods simply has an empty body. Whether we find it more convenient to write our own type that implements IObserver<T>, or just supply callbacks for some or all of its OnNext, OnError and OnCompleted method, the basic behaviour is the same: an IObservable<T> source reports each event with a call to OnNext, and tells us that the events have come to an end either by calling OnError or OnCompleted.
-我们不传递所有三个方法的 Subscribe 重载（例如，我之前的示例仅提供了与 OnNext 相对应的单个回调）相当于编写 IObserver<T> 的类型更方便，或者只是为其部分或全部 OnNext 、 OnError 和 OnCompleted 方法，基本行为是相同的： IObservable<T> 源通过调用 OnNext 报告每个事件，并告诉我们事件已经结束调用 OnError 或 OnCompleted 。
+```
 
-If you're wondering whether the relationship between IObservable<T> and IObserver<T> is similar to the relationship between IEnumerable<T> and IEnumerator<T>, then you're onto something. Both IEnumerator<T> and IObservable<T> represent potential sequences. With both of these interfaces, they will only supply data if we ask them for it. To get values out of an IEnumerable<T>, an IEnumerator<T> needs to come into existence, and similarly, to get values out of an IObservable<T> requires an IObserver<T>.
-如果您想知道 IObservable<T> 和 IObserver<T> 之间的关系是否类似于 IEnumerable<T> 和 IEnumerator<T> 之间的关系，那么您是到某物上。 IEnumerator<T> 和 IObservable<T> 都代表潜在的序列。对于这两个接口，它们只会在我们要求时提供数据。要从 IEnumerable<T> 中获取值，需要存在 IEnumerator<T> ，同样，要从 IObservable<T> 中获取值需要 IObserver<T>
+在这个 `Subscribe` 扩展方法中如果我们不传递完整的三个方法（例如，我之前的示例只提供了与 `OnNext` 对应的单个回调）就相当于编写一个相应方法为空方法的 `IObserver<T>`。不管我们是选择自己实现 `IObserver<T>` 还是选择提供三个方法中的几个或全部回调，`Subscribe` 方法的基本行为是相同的：`IObservable<T>` 源通过调用 `OnNext` 报告每个事件，并通过调用 `OnError` 或 `OnCompleted` 告诉我们事件已经结束。
 
-The difference reflects the fundamental pull vs push difference between IEnumerable<T> and IObservable<T>. Whereas with IEnumerable<T> we ask the source to create an IEnumerator<T> for us which we can then use to retrieve items (which is what a C# foreach loop does), with IObservable<T>, the source does not implement IObserver<T>: it expects us to supply an IObserver<T> and it will then push its values into that observer.
-这种差异反映了 IEnumerable<T> 和 IObservable<T> 之间基本的拉动与推动差异。而对于 IEnumerable<T> ，我们要求源为我们创建一个 IEnumerator<T> ，然后我们可以使用它来检索项目（这就是 C# foreach 循环的作用），对于 IObservable<T> ，源不会实现 IObserver<T> ：它期望我们提供一个 IObserver<T> ，然后它将其值推送到该观察者中。
+如果您想知道 `IObservable<T>` 和 `IObserver<T>` 之间的关系是否类似于 [`IEnumerable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerable-1) 和 [`IEnumerator<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerator-1) 之间的关系，那么您就想到点子上了。`IEnumerator<T>` 和 `IObservable<T>` 都代表潜在的序列。对于这两个接口，它们只会在我们要求时提供数据。要从 `IEnumerable<T>` 中获取值，需要一个 `IEnumerator<T>`；同样，要从 `IObservable<T>` 中获取值，需要一个 `IObserver<T>`。
 
-So why does IObserver<T> have these three methods? Remember when I said that in an abstract sense, IObserver<T> represents the same thing as IEnumerable<T>? I meant it. It might be an abstract sense, but it is precise: IObservable<T> and IObserver<T> were designed to preserve the exact meaning of IEnumerable<T> and IEnumerator<T>, changing only the detailed mechanism of consumption.
-那么为什么 IObserver<T> 有这三个方法呢？还记得我说过，在抽象意义上， IObserver<T> 与 IEnumerable<T> 表示相同的东西吗？我是认真的。这可能是一个抽象的含义，但它是精确的： IObservable<T> 和 IObserver<T> 旨在保留 IEnumerable<T> 和 IEnumerator<T> 的确切含义，仅改变具体的消费机制。
+这种差异反映了 `IEnumerable<T>` 和 `IObservable<T>` 在获取数据方面最基本的区别：“拉取式（pull）” VS “推送式（push）”。对于 `IEnumerable<T>`，我们要求源为我们创建一个 `IEnumerator<T>` ，然后我们可以使用它来检索项目（这就是 C# `foreach` 循环的作用）；对于 `IObservable<T>`，源不会自己实现 `IObserver<T>`：它期望我们提供一个 `IObserver<T>`，然后它将值推送到该观察者中。
 
-To see what that means, think about what happens when you iterate over an IEnumerable<T> (with, say, a foreach loop). With each iteration (and more precisely, on each call to the enumerator's MoveNext method) there are three things that could happen:
-要了解这意味着什么，请考虑当您迭代 IEnumerable<T> （例如，使用 foreach 循环）时会发生什么。每次迭代（更准确地说，每次调用枚举器的 MoveNext 方法）都可能发生三件事：
+那么为什么 `IObserver<T>` 会有这三个方法呢？我之前说过，在抽象意义上 `IObserver<T>` 与 `IEnumerable<T>` 表示相同的东西。这也许有些抽象，所以我们详细说说： `IObservable<T>` 和 `IObserver<T>` 旨在保留 `IEnumerable<T>` 和 `IEnumerator<T>` 的确切含义，仅改变具体的（事件/数据）消费机制。
 
-MoveNext could return true to indicate that a value is available in the enumerator's Current property
-MoveNext 可以返回 true 以指示枚举器的 Current 属性中存在可用值
-MoveNext could throw an exception
-MoveNext 可能会引发异常
-MoveNext could return false to indicate that you've reached the end of the collection
-MoveNext 可能会返回 false 以指示您已到达集合末尾
-These three outcomes correspond precisely to the three methods defined by IObserver<T>. We could describe these in slightly more abstract terms:
-这三个结果恰好对应于 IObserver<T> 定义的三种方法。我们可以用稍微更抽象的术语来描述这些：
+要了解这是什么意思，请考虑当您迭代 `IEnumerable<T>`（比如使用 `foreach` 循环）时会发生什么。每次迭代（更准确地说，每次调用枚举器的 `[MoveNext](https://learn.microsoft.com/en-us/dotnet/api/system.collections.ienumerator.movenext)` 方法）都可能发生三种结果：
 
-Here's another item 这是另一项
-It has all gone wrong
-一切都出了问题
-There are no more items
-没有更多商品了
-That describes the three things that either can happen next when consuming either an IEnumerable<T> or an IObservable<T>. The only difference is the means by which consumers discover this. With an IEnumerable<T> source, each call to MoveNext will tell us which of these three applies. And with an IObservable<T> source, it will tell you one of these three things with a call to the corresponding member of your IObserver<T> implementation.
-这描述了在使用 IEnumerable<T> 或 IObservable<T> 时接下来可能发生的三件事。唯一的区别在于消费者发现这一点的方式。对于 IEnumerable<T> 源，每次调用 MoveNext 都会告诉我们这三个中哪一个适用。对于 IObservable<T> 源，它会通过调用 IObserver<T> 实现的相应成员来告诉您这三件事之一。
+* `MoveNext` 可以返回 `true` 以指示枚举器的 `[Current](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerator-1.current)` 属性中存在可用值
+
+* `MoveNext` 可能会抛出一个异常
+
+* `MoveNext` 可能会返回 `false` 以指示您已到达集合末尾
+
+这三个结果恰好对应于 `IObserver<T>` 定义的三种方法。我们可以用稍微更抽象的术语来描述这些：
+
+* 这是另一项
+
+* 出了问题
+
+* 没有更多项了
+
+这描述了在使用 `IEnumerable<T>` 或 `IObservable<T>` 时接下来可能发生的三种结果，唯一的区别在于消费者发现结果的方式。对于 `IEnumerable<T>` 源，每次调用 `MoveNext` 都会告诉我们出现了这三种结果中的哪种；对于 `IObservable<T>` 源，它会通过调用 `IObserver<T>` 实现的相应成员来告诉您出现了哪种结果。
 
 ## Rx 序列的基本规则
 
-Notice that two of the three outcomes in the list above are terminal. If you're iterating through an IEnumerable<T> with a foreach loop, and it throws an exception, the foreach loop will terminate. The C# compiler understands that if MoveNext throws, the IEnumerator<T> is now done, so it disposes it and then allows the exception to propagate. Likewise, if you get to the end of a sequence, then you're done, and the compiler understands that too: the code it generates for a foreach loop detects when MoveNext returns false and when that happens it disposes the enumerator and then moves onto the code after the loop.
-请注意，上面列表中的三个结果中有两个是最终结果。如果您使用 foreach 循环迭代 IEnumerable<T> ，并且它引发异常，则 foreach 循环将终止。 C# 编译器知道，如果 MoveNext 抛出，则 IEnumerator<T> 现在已完成，因此它会处理它，然后允许异常传播。同样，如果到达序列的末尾，那么就完成了，编译器也理解这一点：它为 foreach 循环生成的代码会检测 MoveNext 何时返回 false当发生这种情况时，它会处理枚举器，然后移至循环后的代码。
+请注意，上面列表中的三个结果中有两个是最终结果。如果您使用 `foreach` 循环迭代一个 `IEnumerable<T>` ，并且它引发异常，则 `foreach` 循环将终止。C# 编译器知道如果 `MoveNext` 抛出了异常，则 `IEnumerator<T>` 就该被终结了，因此编译器会处理（dispose）它，然后允许异常传播。同样，如果到达序列的末尾，那么任务就完成了，编译器也能理解这一点：它为 `foreach` 循环生成的代码会检测 `MoveNext` 何时返回 `false`，当发生这种情况时，它会处理（dispose）枚举器并继续执行循环后的代码。
 
-These rules might seem so obvious that we might never even think about them when iterating over IEnumerable<T> sequences. What might be less immediately obvious is that exactly the same rules apply for an IObservable<T> sequence. If an observable source either tells an observer that the sequence has finished, or reports an error, then in either case, that is the last thing the source is allowed to do to the observer.
-这些规则可能看起来非常明显，以至于我们在迭代 IEnumerable<T> 序列时可能永远不会考虑它们。可能不太明显的是，完全相同的规则适用于 IObservable<T> 序列。如果可观察源告诉观察者序列已完成，或者报告错误，那么无论哪种情况，这都是允许源对观察者做的最后一件事。
+这些规则可能看起来非常明显，以至于我们在迭代 `IEnumerable<T>` 序列时可能永远不会考虑它们。可能不太明显的是，完全相同的规则也适用于 `IObservable<T>` 序列。如果可观察源告诉观察者序列已结束，或者报告了一个错误，那么无论哪种情况都是源可以对观察者做的最后一件事。
 
-That means these examples would be breaking the rules:
 这意味着这些示例将违反规则：
 
+```C#
 public static void WrongOnError(IObserver<int> obs)
 {
     obs.OnNext(1);
     obs.OnError(new ArgumentException("This isn't an argument!"));
-    obs.OnNext(2);  // Against the rules! We already reported failure, so iteration must stop
+    obs.OnNext(2);  //违反规则！抛出异常后迭代应该终止。
 }
 
 public static void WrongOnCompleted(IObserver<int> obs)
 {
     obs.OnNext(1);
     obs.OnCompleted();
-    obs.OnNext(2);  // Against the rules! We already said we were done, so iteration must stop
+    obs.OnNext(2);  //违反规则！序列结束后迭代应该终止。
 }
 
+//下面两个实例都违反了规则。OnError 和 OnCompleted 不能先后调用。
+//只能选择调用一个来结束对序列的观察。
 public static void WrongOnErrorAndOnCompleted(IObserver<int> obs)
 {
     obs.OnNext(1);
     obs.OnError(new ArgumentException("A connected series of statements was not supplied"));
-
-    // This next call is against the rules because we reported an error, and you're not
-    // allowed to make any further calls after you did that.
     obs.OnCompleted();
 }
 
@@ -368,38 +361,37 @@ public static void WrongOnCompletedAndOnError(IObserver<int> obs)
 {
     obs.OnNext(1);
     obs.OnCompleted();
-
-    // This next call is against the rule because already said we were done.
-    // When you terminate a sequence you have to pick between OnCompleted or OnError
     obs.OnError(new ArgumentException("Definite proposition not established"));
 }
-These correspond in a pretty straightforward way to things we already know about IEnumerable<T>:
-这些以非常简单的方式对应于我们已经了解的 IEnumerable<T> 的内容：
+```
 
-WrongOnError: if an enumerator throws from MoveNext, it's done and you mustn't call MoveNext again, so you won't be getting any more items out of it
-WrongOnError ：如果枚举器从 MoveNext 抛出异常，则它已完成，您不能再次调用 MoveNext ，因此您不会再从中获取任何项目它
-WrongOnCompleted: if an enumerator returns false from MoveNext, it's done and you mustn't call MoveNext again, so you won't be getting any more items out of it
-WrongOnCompleted ：如果枚举器从 MoveNext 返回 false ，则完成，您不能再次调用 MoveNext ，因此您不会从中获取更多物品
-WrongOnErrorAndOnCompleted: if an enumerator throws from MoveNext, that means its done, it's done and you mustn't call MoveNext again, meaning it won't have any opportunity to tell that it's done by returning false from MoveNext
-WrongOnErrorAndOnCompleted ：如果枚举器从 MoveNext 抛出异常，则意味着它已完成，它已经完成，并且您不能再次调用 MoveNext ，这意味着它不会有任何有机会通过从 MoveNext 返回 false 来告诉它已完成
-WrongOnCompletedAndOnError: if an enumerator returns false from MoveNext, it's done and you mustn't call MoveNext again, meaning it won't have any opportunity to also throw an exception
-WrongOnCompletedAndOnError ：如果枚举器从 MoveNext 返回 false ，则已完成，您不能再次调用 MoveNext ，这意味着它不会有机会也抛出异常
-Because IObservable<T> is push-based, the onus for obeying all of these rules fall on the observable source. With IEnumerable<T>, which is pull-based, it's up to the code using the IEnumerator<T> (e.g. a foreach loop) to obey these rules. But they are essentially the same rules.
-因为 IObservable<T> 是基于推送的，所以遵守所有这些规则的责任就落在了可观察的源身上。对于基于拉的 IEnumerable<T> ，由使用 IEnumerator<T> （例如 foreach 循环）的代码来遵守这些规则。但它们本质上是相同的规则。
+以上错误示例跟我们知道的 `IEnumerable<T>` 的特性相对应：
 
-There's an additional rule for IObserver<T>: if you call OnNext you must wait for it to return before making any more method calls into the same IObserver<T>. That means this code breaks the rules:
-IObserver<T> 还有一条附加规则：如果调用 OnNext ，则必须等待它返回，然后才能对同一个 IObserver<T> 进行更多方法调用。这意味着这段代码违反了规则：
+* `WrongOnError` ：如果枚举器从 `MoveNext` 抛出异常，则它已完成，您不能再调用 `MoveNext` ，因此您也不会再获得任何项
 
+* `WrongOnCompleted` ：如果枚举器从 `MoveNext` 返回 `false` ，则它已完成，您不能再调用 `MoveNext` ，因此您也不会再获得任何项
+
+* `WrongOnErrorAndOnCompleted` ：如果枚举器从 `MoveNext` 抛出异常，则意味着它已完成并且您不能再次调用 `MoveNext`，同时它也不能通过从 `MoveNext` 返回 `false` 来告诉它已完成
+
+* `WrongOnCompletedAndOnError` ：如果枚举器从 `MoveNext` 返回 `false`，则它已完成，您不能再次调用 `MoveNext`，它也没有机会抛出异常
+
+因为 `IObservable<T>` 是“推送式（push）”的，所以可观察的源需要负责遵守所有规则。对于“拉取式（pull）”的 `IEnumerable<T>`，由使用 `IEnumerator<T>`（例如 `foreach` 循环）的代码来遵守这些规则。但它们本质上都是相同的规则。
+
+`IObserver<T>` 还有一条附加规则：如果调用 `OnNext`，则必须等待它返回，然后才能对同一个 `IObserver<T>` 进行更多方法调用。这意味着这段代码违反了规则：
+
+```C#
 public static void EverythingEverywhereAllAtOnce(IEnumerable<int> obs)
 {
     Random r = new();
     for (int i = 0; i < 10000; ++i)
     {
         int v = r.Next();
-        Task.Run(() => obs.OnNext(v)); // Against the rules!
-    }}
-This calls obs.OnNext 10,000 times, but it executes these calls as individual tasks to be run on the thread pool. The thread pool is designed to be able to execute work in parallel, and that's a a problem here because nothing here ensures that one call to OnNext completes before the next begins. We've broken the rule that says we must wait for each call to OnNext to return before calling either OnNext, OnError, or OnComplete on the same observer. (Note: this assumes that the caller won't subscribe the same observer to multiple different sources. If you do that, you can't assume that all calls to its OnNext will obey the rules, because the different sources won't have any way of knowing they're talking to the same observer.)
-这会调用 obs.OnNext 10,000 次，但它将这些调用作为要在线程池上运行的单独任务来执行。线程池被设计为能够并行执行工作，这是一个问题，因为这里没有任何内容可以确保对 OnNext 的一次调用在下一次调用开始之前完成。我们打破了规则，即在调用 OnNext 、 OnError 或 OnComplete 的每次调用返回> 在同一个观察者上。 （注意：这假设调用者不会将同一个观察者订阅到多个不同的源。如果这样做，则不能假设对其 OnNext 的所有调用都会遵守规则，因为不同的源消息来源无法知道他们正在与同一个观察者交谈。）
+        Task.Run(() => obs.OnNext(v)); //违反规则！
+    }
+}
+```
+
+这会调用 `obs.OnNext` 10,000 次，但它将这些调用作为要在线程池上运行的单独任务来执行。线程池被设计为能够并行执行工作，而它没法确保对 `OnNext` 的一次调用在下一次调用开始之前完成。我们打破了规则——即我们一旦调用 `OnNext` 方法就必须等待它返回，才能在同一个观察者上继续调用 `OnNext`、`OnError` 或 `OnCompleted` 方法（注意：这假设调用者不会将同一个观察者订阅到多个不同的源。如果这样做就不能保证对其 `OnNext` 的所有调用都会遵守规则，因为不同的源无法知道它们正在与同一个观察者交谈）。
 
 This rule is the only form of back pressure built into Rx.NET: since the rules forbid calling OnNext if a previous call to OnNext is still in progress, this enables an IObserver<T> to limit the rate at which items arrive. If you just don't return from OnNext until you're ready, the source is obliged to wait. However, there are some issues with this. Once schedulers get involved, the underlying source might not be connected directly to the final observer. If you use something like ObserveOn it's possible that the IObserver<T> subscribed directly to the source just puts items on a queue and immediately returns, and those items will then be delivered to the real observer on a different thread. In these cases, the 'back pressure' caused by taking a long time to return from OnNext only propagates as far as the code pulling items off the queue.
 此规则是 Rx.NET 中内置的唯一背压形式：由于如果先前对 OnNext 的调用仍在进行中，则规则禁止调用 OnNext ，因此这会启用 IObserver<T> 限制物品到达的速率。如果您在准备好之前才从 OnNext 返回，则源必须等待。然而，这存在一些问题。一旦调度程序介入，底层源可能不会直接连接到最终观察者。如果您使用类似 ObserveOn 的内容，则直接订阅源的 IObserver<T> 可能只是将项目放入队列并立即返回，然后这些项目将被传递给真正的观察者一个不同的线程。在这些情况下，由于从 OnNext 返回需要很长时间而导致的“背压”仅传播到从队列中拉出项目的代码。

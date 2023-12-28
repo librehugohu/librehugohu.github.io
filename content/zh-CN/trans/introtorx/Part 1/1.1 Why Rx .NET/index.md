@@ -87,7 +87,7 @@ Rx可以用来表示异步操作。.NET 的 `Task` 或 `Task<T>` 有效地表示
 
 这意味着有些场景既可以使用 `Task` 和 `async` 关键字也可以通过 Rx 来处理。如果在处理过程中的任何时候您需要处理多个值和单个值，则 Rx 可以同时胜任这两项工作；但 `Task` 不能很好地处理多个项目。您可以使用 `Task<IEnumerable<int>>` ，它使您能够等待（`await`）一个集合，如果可以在一个步骤中集齐集合中的所有项目，那就没问题了。这样做的限制是，一旦 `Task<T>` 产生了 `IEnumerable<int>` 结果，您的等待（`await`）就完成了，并且您将回到对 `IEnumerable<int>` 的非异步迭代。如果无法在单个步骤中获取所有数据（例如 `IEnumerable<int>` 表示来自 API 的数据，每次批量获取 100 个项作为结果），则其 `MoveNext` 每次需要等待时都必须阻塞线程。
 
-在 Rx 诞生的最初 5 年里，它可以说是表示不一定会立刻获得可用项的集合的最佳方式。然而，.NET Core 3.0 和 C# 8 中引入的 [IAsyncEnumerable<T>](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.iasyncenumerable-1) 提供了一种在 `async` / `await` 环境中处理序列的方法（.NET Framework 和 .NET Standard 2.0 平台可通过 [Microsoft.Bcl.AsyncInterfaces NuGet 包](https://www.nuget.org/packages/Microsoft.Bcl.AsyncInterfaces/)使用相关功能）。因此，现在是否使用 Rx 往往取决于“拉取式（pull）”模型（以 foreach 或 await foreach 为代表）还是“推送式（push）”模型（代码提供回调，当项可用时由事件源调用）更适合正在建模的概念。
+在 Rx 诞生的最初 5 年里，它可以说是表示不一定会立刻获得可用项的集合的最佳方式。然而，.NET Core 3.0 和 C# 8 中引入的 [IAsyncEnumerable<T>](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.iasyncenumerable-1) 提供了一种在 `async` / `await` 环境中处理序列的方法（.NET Framework 和 .NET Standard 2.0 平台可通过 [Microsoft.Bcl.AsyncInterfaces NuGet 包](https://www.nuget.org/packages/Microsoft.Bcl.AsyncInterfaces/)使用相关功能）。因此，现在是否使用 Rx 往往取决于“拉取式（pull）”模型（以 `foreach` 或 `await foreach` 为代表）还是“推送式（push）”模型（代码提供回调，当项可用时由事件源调用）更适合正在建模的概念。
 
 自 Rx 首次出现以来 .NET 添加的另一个相关功能是[通道（channels）](https://learn.microsoft.com/en-us/dotnet/core/extensions/channels)。它们允许源生成对象并让消费者处理它们，因此粗看与 Rx 有点像。然而，Rx 的一个明显特征是它支持与大量运算符组合在一起，而通道中没有直接等效的功能。另一方面，通道提供了更多的选择来适应生产和消费率的变化。
 

@@ -13,9 +13,9 @@ Diátaxis 是一个关于如何编写文档的文档，适合想要构造项目�
 {{< cards >}}
   {{< card
   link="diataxis"
-  icon="book-open"
+  icon="document-text"
   image="/image/diataxis.jpg"
-  title="Diátaxis"
+  title="Diátaxis [🚧 WIP]"
   subtitle="技术文档创作的系统方法" >}}
 {{< /cards >}}
 
@@ -26,15 +26,16 @@ Diátaxis 是一个关于如何编写文档的文档，适合想要构造项目�
 {{< cards >}}
   {{< card
   link="introtorx"
-  icon="book-open"
+  icon="document-text"
   image="/image/introtorx.jpg"
-  title="Introduction to Rx.NET"
+  title="Introduction to Rx.NET [🚧 WIP]"
   subtitle="Introduction to Rx.NET 中文版" >}}
+
   {{< card
   link="reactiveui"
-  icon="book-open"
+  icon="document-text"
   image="/image/reactiveui.jpg"
-  title="ReactiveUI Documentation"
+  title="ReactiveUI Documentation [🚧 WIP]"
   subtitle="ReactiveUI 文档中文版" >}}
 {{< /cards >}}
 
