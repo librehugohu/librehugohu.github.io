@@ -14,7 +14,7 @@ Diátaxis 是一个关于如何编写文档的文档，适合想要构造项目�
   {{< card
   link="diataxis"
   icon="document-text"
-  image="/image/diataxis.jpg"
+  image="/image/diataxis-cn.jpg"
   title="Diátaxis [🚧 WIP]"
   subtitle="技术文档创作的系统方法" >}}
 {{< /cards >}}

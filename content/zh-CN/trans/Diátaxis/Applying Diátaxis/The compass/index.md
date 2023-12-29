@@ -1,4 +1,4 @@
 ---
 title: 指南针
-weight: 8
+weight: 5
 ---
