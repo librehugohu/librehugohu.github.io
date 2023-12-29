@@ -1,4 +1,4 @@
 ---
-title: 在工作流中使用 Diátaxis
+title: Diátaxis 作为工作指南
 weight: 6
 ---
