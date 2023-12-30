@@ -12,7 +12,7 @@ Diátaxis 是一个关于如何编写文档的文档，适合想要构造项目�
 
 {{< cards >}}
   {{< card
-  link="diataxis"
+  link="diátaxis"
   icon="document-text"
   image="/image/diataxis_zh-CN.jpg"
   title="Diátaxis [🚧 WIP]"
