@@ -79,6 +79,7 @@ params:
     displayLogo: true
     logo:
       path: favicon.svg
+      dark: favicon-dark.svg
 
   footer:
     displayCopyright: true
